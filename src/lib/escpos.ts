@@ -57,6 +57,37 @@ export function row(left: string, right: string, width = 32) {
   return l + " ".repeat(gap) + right;
 }
 
+/* Minimal Web Bluetooth typings (not in default TS lib) */
+type BluetoothCharProps = { write: boolean; writeWithoutResponse: boolean };
+type BluetoothRemoteGATTCharacteristic = {
+  properties: BluetoothCharProps;
+  writeValue: (v: BufferSource) => Promise<void>;
+  writeValueWithoutResponse: (v: BufferSource) => Promise<void>;
+};
+type BluetoothRemoteGATTService = {
+  getCharacteristics: () => Promise<BluetoothRemoteGATTCharacteristic[]>;
+};
+type BluetoothRemoteGATTServer = {
+  connect: () => Promise<BluetoothRemoteGATTServer>;
+  disconnect: () => void;
+  getPrimaryServices: () => Promise<BluetoothRemoteGATTService[]>;
+};
+type BluetoothDevice = {
+  name?: string | null;
+  gatt?: BluetoothRemoteGATTServer;
+  addEventListener: (type: string, cb: () => void) => void;
+};
+type BluetoothApi = {
+  requestDevice: (opts: {
+    acceptAllDevices?: boolean;
+    optionalServices?: string[];
+  }) => Promise<BluetoothDevice>;
+};
+
+function getBluetooth(): BluetoothApi | undefined {
+  return (navigator as unknown as { bluetooth?: BluetoothApi }).bluetooth;
+}
+
 const SERVICES = [
   "000018f0-0000-1000-8000-00805f9b34fb",
   "0000ffe0-0000-1000-8000-00805f9b34fb",
@@ -68,7 +99,7 @@ type Conn = { device: BluetoothDevice; characteristic: BluetoothRemoteGATTCharac
 let conn: Conn | null = null;
 
 export function isBluetoothSupported() {
-  return typeof navigator !== "undefined" && "bluetooth" in navigator;
+  return typeof navigator !== "undefined" && !!getBluetooth();
 }
 
 export function connectedPrinterName() {
@@ -77,7 +108,7 @@ export function connectedPrinterName() {
 
 export async function connectPrinter(): Promise<string> {
   if (!isBluetoothSupported()) throw new Error("Web Bluetooth is not supported in this browser.");
-  const device = await navigator.bluetooth.requestDevice({
+  const device = await getBluetooth()!.requestDevice({
     acceptAllDevices: true,
     optionalServices: SERVICES,
   });
@@ -86,7 +117,7 @@ export async function connectPrinter(): Promise<string> {
   const services = await server.getPrimaryServices();
   for (const service of services) {
     const chars = await service.getCharacteristics();
-    const writable = chars.find((c) => c.properties.write || c.properties.writeWithoutResponse);
+    const writable = chars.find((c: BluetoothRemoteGATTCharacteristic) => c.properties.write || c.properties.writeWithoutResponse);
     if (writable) {
       characteristic = writable;
       break;
