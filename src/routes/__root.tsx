@@ -80,11 +80,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "CounterBook — Multi-Store POS & Billing" },
       {
         name: "description",
-        content: "Lightweight multi-store retail POS and billing app with thermal printing.",
+        content: "Fast multi-store retail POS and billing app: manage firms and items, edit invoice number, date and time, then print A4 PDF or 80mm Bluetooth thermal receipts.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { property: "og:title", content: "CounterBook — Multi-Store POS & Billing" },
+      { name: "twitter:title", content: "CounterBook — Multi-Store POS & Billing" },
+      { property: "og:description", content: "Fast multi-store retail POS and billing app: manage firms and items, edit invoice number, date and time, then print A4 PDF or 80mm Bluetooth thermal receipts." },
+      { name: "twitter:description", content: "Fast multi-store retail POS and billing app: manage firms and items, edit invoice number, date and time, then print A4 PDF or 80mm Bluetooth thermal receipts." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df541070-98ff-402b-b851-c01305ee5e50/id-preview-ff5b1c60--8af97bfc-87c3-4185-b8ec-c00d75e40f70.lovable.app-1785399254660.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df541070-98ff-402b-b851-c01305ee5e50/id-preview-ff5b1c60--8af97bfc-87c3-4185-b8ec-c00d75e40f70.lovable.app-1785399254660.png" },
     ],
     links: [
       {

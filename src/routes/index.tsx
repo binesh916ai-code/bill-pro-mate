@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Lightweight billing counter app with multi-firm profiles, quick item search, cash/UPI bills and Bluetooth thermal printing.",
+          "Fast multi-store retail POS and billing app: manage firms and items, edit invoice number, date and time, then print A4 PDF or 80mm Bluetooth thermal receipts.",
       },
     ],
   }),
