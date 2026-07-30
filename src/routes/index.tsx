@@ -111,7 +111,7 @@ function PosApp() {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-4 print:hidden">
+      <main className="mx-auto max-w-5xl px-4 py-4">
         {!ready ? (
           <p className="py-20 text-center text-sm text-muted-foreground">Loading…</p>
         ) : tab === "billing" ? (
