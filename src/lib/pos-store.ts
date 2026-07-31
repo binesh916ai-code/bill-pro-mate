@@ -43,8 +43,10 @@ export type SavedBill = {
   total: number;
   discount: number;
   payment: "Cash" | "UPI";
+  customer?: string;
   createdAt: number;
 };
+
 
 const KEY = "pos-data-v1";
 
