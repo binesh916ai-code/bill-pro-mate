@@ -9,7 +9,12 @@ export type Firm = {
   invoicePrefix: string;
   nextInvoiceNo: number;
   footer: string;
+  /** 1-5 layout preset for A4 invoices */
+  a4Template?: number;
+  /** 1-5 layout preset for 80mm receipts */
+  thermalTemplate?: number;
 };
+
 
 export type Item = {
   id: string;
