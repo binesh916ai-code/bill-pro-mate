@@ -68,7 +68,10 @@ function seed(): PosData {
     invoicePrefix: "INV-",
     nextInvoiceNo: 1,
     footer: "Thank you, visit again!",
+    a4Template: 1,
+    thermalTemplate: 1,
   };
+
   const items: Item[] = [
     { name: "Sugar", price: 46, unit: "kg" },
     { name: "Toor Dal", price: 132, unit: "kg" },
