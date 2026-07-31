@@ -1,22 +1,15 @@
-import { useMemo, useState } from "react";
-import { Bluetooth, Minus, Plus, Printer, Save, Search, Trash2, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { FileText, Minus, Plus, Receipt, Save, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BillPreview, billTotals, money, type BillData } from "./BillPreview";
+import { BillDialog } from "./BillDialog";
+import { PrinterBadge } from "./PrinterBadge";
 import type { CartLine, Firm, Item, PosData } from "@/lib/pos-store";
-import {
-  EscPosBuilder,
-  connectPrinter,
-  connectedPrinterName,
-  isBluetoothSupported,
-  printBytes,
-  row,
-} from "@/lib/escpos";
 
 type Props = {
   firm: Firm | null;

@@ -13,7 +13,7 @@ import {
 } from "@/lib/escpos";
 
 export function PrinterBadge({ compact = false }: { compact?: boolean }) {
-  const [status, setStatus] = useState<PrinterStatus>(printerStatus);
+  const [status, setStatus] = useState<PrinterStatus>(() => printerStatus());
 
   useEffect(() => {
     const unsub = subscribePrinter(setStatus);
