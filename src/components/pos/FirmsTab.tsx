@@ -141,6 +141,60 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
             <Input value={form.footer} onChange={(e) => set("footer", e.target.value)} />
           </div>
         </div>
+
+        <div className="space-y-3 rounded-xl border border-border p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Bill templates</p>
+            <div className="flex gap-1 rounded-lg bg-secondary p-1">
+              {(["thermal", "a4"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setPreviewMode(m)}
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                    previewMode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                  }`}
+                >
+                  {m === "a4" ? "A4 / PDF" : "80mm receipt"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(previewMode === "a4" ? A4_TEMPLATES : THERMAL_TEMPLATES).map((t) => {
+              const active = (previewMode === "a4" ? a4Template : thermalTemplate) === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() =>
+                    previewMode === "a4" ? setA4Template(t.id) : setThermalTemplate(t.id)
+                  }
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:border-primary"
+                  }`}
+                >
+                  {t.id}. {t.name}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="max-h-[420px] overflow-auto rounded-lg border border-border bg-white p-2">
+            <div className={previewMode === "a4" ? "origin-top scale-[0.62]" : ""}>
+              <BillPreview
+                bill={sampleBill}
+                mode={previewMode}
+                template={previewMode === "a4" ? a4Template : thermalTemplate}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The selected templates are saved with this business profile and used for its bills.
+          </p>
+        </div>
+
         <div className="flex gap-2">
           <Button onClick={save}>
             <Plus /> {editingId ? "Update business" : "Add business"}
