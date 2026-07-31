@@ -256,6 +256,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
                       nextInvoiceNo: String(f.nextInvoiceNo),
                       footer: f.footer,
                     });
+                    setA4Template(f.a4Template ?? 1);
+                    setThermalTemplate(f.thermalTemplate ?? 1);
                   }}
                 >
                   <Pencil className="h-4 w-4" />
