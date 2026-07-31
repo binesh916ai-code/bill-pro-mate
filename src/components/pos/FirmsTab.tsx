@@ -7,6 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  A4_TEMPLATES,
+  BillPreview,
+  THERMAL_TEMPLATES,
+  type BillData,
+} from "./BillPreview";
 import type { Firm, PosData } from "@/lib/pos-store";
 
 type Props = {
@@ -26,11 +32,43 @@ const blank = {
   footer: "Thank you, visit again!",
 };
 
+const SAMPLE_LINES = [
+  { itemId: "s1", name: "Sugar", price: 46, unit: "kg", qty: 2 },
+  { itemId: "s2", name: "Sunflower Oil", price: 148, unit: "ltr", qty: 1 },
+  { itemId: "s3", name: "Tea Powder", price: 265, unit: "kg", qty: 1 },
+];
+
 export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
   const [form, setForm] = useState({ ...blank });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [a4Template, setA4Template] = useState(1);
+  const [thermalTemplate, setThermalTemplate] = useState(1);
+  const [previewMode, setPreviewMode] = useState<"a4" | "thermal">("thermal");
 
   const set = (k: keyof typeof blank, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const sampleBill: BillData = {
+    firm: {
+      id: "sample",
+      name: form.name || "Your Business",
+      address: form.address,
+      phone: form.phone,
+      gstin: form.gstin,
+      invoicePrefix: form.invoicePrefix,
+      nextInvoiceNo: Number(form.nextInvoiceNo) || 1,
+      footer: form.footer,
+      a4Template,
+      thermalTemplate,
+    },
+    invoiceNo: `${form.invoicePrefix}${String(Number(form.nextInvoiceNo) || 1).padStart(4, "0")}`,
+    date: new Date().toISOString().slice(0, 10),
+    time: new Date().toTimeString().slice(0, 5),
+    lines: SAMPLE_LINES,
+    discount: 20,
+    payment: "Cash",
+    customer: "Walk-in",
+  };
+
 
   function save() {
     if (!form.name.trim()) return toast.error("Enter the business name.");
