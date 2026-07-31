@@ -283,19 +283,16 @@ export function BillingTab({ firm, items, update, uid }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => openPreview("a4")}>
-            <Printer /> A4 Preview
+            <FileText /> A4 / PDF
           </Button>
           <Button variant="outline" onClick={() => openPreview("thermal")}>
-            <Printer /> 80mm Preview
+            <Receipt /> 80mm receipt
           </Button>
-          <Button variant={printerName ? "secondary" : "outline"} onClick={handleConnect}>
-            <Bluetooth /> {printerName ? printerName.slice(0, 12) : "Connect Printer"}
-          </Button>
-          <Button onClick={handleThermalPrint}>
-            <Printer /> Thermal Print
-          </Button>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <PrinterBadge />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="ghost" onClick={resetBill}>
@@ -310,29 +307,19 @@ export function BillingTab({ firm, items, update, uid }: Props) {
         </div>
       </Card>
 
-      <Dialog open={preview !== null} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{printMode === "a4" ? "A4 Invoice preview" : "80mm receipt preview"}</DialogTitle>
-          </DialogHeader>
-          <div className="rounded-lg border border-border bg-white">
-            <BillPreview bill={bill} mode={printMode} />
-          </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={() => setPreview(null)}>
-              Close
-            </Button>
-            <Button
-              onClick={() => {
-                saveBill(true);
-                doPrint();
-              }}
-            >
-              <Printer /> Print / Save as PDF
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BillDialog
+        open={preview}
+        onOpenChange={(o) => {
+          setPreview(o);
+          if (!o && savedRef.current) resetBill();
+        }}
+        bill={bill}
+        mode={printMode}
+        onModeChange={setPrintMode}
+        template={printMode === "a4" ? (firm?.a4Template ?? 1) : (firm?.thermalTemplate ?? 1)}
+        onBeforePrint={saveOnce}
+      />
+
 
       <div className={`print-area ${printMode === "thermal" ? "thermal" : ""}`}>
         <BillPreview bill={bill} mode={printMode} />
