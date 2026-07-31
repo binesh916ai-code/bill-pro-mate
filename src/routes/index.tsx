@@ -95,6 +95,12 @@ function PosApp() {
           )}
         </div>
 
+        <div className="mx-auto flex max-w-5xl px-4 pb-1">
+          <PrinterBadge />
+        </div>
+
+
+
         <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-3 pb-2">
           {TABS.map((t) => (
             <button
