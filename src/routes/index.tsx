@@ -14,6 +14,7 @@ import { BillingTab } from "@/components/pos/BillingTab";
 import { ItemsTab } from "@/components/pos/ItemsTab";
 import { FirmsTab } from "@/components/pos/FirmsTab";
 import { HistoryTab } from "@/components/pos/HistoryTab";
+import { PrinterBadge } from "@/components/pos/PrinterBadge";
 import { usePosData } from "@/lib/pos-store";
 
 export const Route = createFileRoute("/")({
@@ -94,6 +95,12 @@ function PosApp() {
           )}
         </div>
 
+        <div className="mx-auto flex max-w-5xl px-4 pb-1">
+          <PrinterBadge />
+        </div>
+
+
+
         <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-3 pb-2">
           {TABS.map((t) => (
             <button
@@ -121,7 +128,7 @@ function PosApp() {
         ) : tab === "firms" ? (
           <FirmsTab firms={data.firms} activeFirmId={firm?.id ?? ""} update={update} uid={uid} />
         ) : (
-          <HistoryTab bills={data.bills} />
+          <HistoryTab bills={data.bills} firms={data.firms} update={update} />
         )}
       </main>
     </div>

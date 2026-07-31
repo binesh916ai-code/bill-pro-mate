@@ -7,6 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  A4_TEMPLATES,
+  BillPreview,
+  THERMAL_TEMPLATES,
+  type BillData,
+} from "./BillPreview";
 import type { Firm, PosData } from "@/lib/pos-store";
 
 type Props = {
@@ -26,11 +32,43 @@ const blank = {
   footer: "Thank you, visit again!",
 };
 
+const SAMPLE_LINES = [
+  { itemId: "s1", name: "Sugar", price: 46, unit: "kg", qty: 2 },
+  { itemId: "s2", name: "Sunflower Oil", price: 148, unit: "ltr", qty: 1 },
+  { itemId: "s3", name: "Tea Powder", price: 265, unit: "kg", qty: 1 },
+];
+
 export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
   const [form, setForm] = useState({ ...blank });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [a4Template, setA4Template] = useState(1);
+  const [thermalTemplate, setThermalTemplate] = useState(1);
+  const [previewMode, setPreviewMode] = useState<"a4" | "thermal">("thermal");
 
   const set = (k: keyof typeof blank, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const sampleBill: BillData = {
+    firm: {
+      id: "sample",
+      name: form.name || "Your Business",
+      address: form.address,
+      phone: form.phone,
+      gstin: form.gstin,
+      invoicePrefix: form.invoicePrefix,
+      nextInvoiceNo: Number(form.nextInvoiceNo) || 1,
+      footer: form.footer,
+      a4Template,
+      thermalTemplate,
+    },
+    invoiceNo: `${form.invoicePrefix}${String(Number(form.nextInvoiceNo) || 1).padStart(4, "0")}`,
+    date: new Date().toISOString().slice(0, 10),
+    time: new Date().toTimeString().slice(0, 5),
+    lines: SAMPLE_LINES,
+    discount: 20,
+    payment: "Cash",
+    customer: "Walk-in",
+  };
+
 
   function save() {
     if (!form.name.trim()) return toast.error("Enter the business name.");
@@ -42,6 +80,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       invoicePrefix: form.invoicePrefix,
       nextInvoiceNo: Number(form.nextInvoiceNo) || 1,
       footer: form.footer,
+      a4Template,
+      thermalTemplate,
     };
     if (editingId) {
       update((d) => ({
@@ -55,6 +95,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       toast.success("Business added");
     }
     setForm({ ...blank });
+    setA4Template(1);
+    setThermalTemplate(1);
     setEditingId(null);
   }
 
@@ -99,6 +141,60 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
             <Input value={form.footer} onChange={(e) => set("footer", e.target.value)} />
           </div>
         </div>
+
+        <div className="space-y-3 rounded-xl border border-border p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Bill templates</p>
+            <div className="flex gap-1 rounded-lg bg-secondary p-1">
+              {(["thermal", "a4"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setPreviewMode(m)}
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                    previewMode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                  }`}
+                >
+                  {m === "a4" ? "A4 / PDF" : "80mm receipt"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(previewMode === "a4" ? A4_TEMPLATES : THERMAL_TEMPLATES).map((t) => {
+              const active = (previewMode === "a4" ? a4Template : thermalTemplate) === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() =>
+                    previewMode === "a4" ? setA4Template(t.id) : setThermalTemplate(t.id)
+                  }
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:border-primary"
+                  }`}
+                >
+                  {t.id}. {t.name}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="max-h-[420px] overflow-auto rounded-lg border border-border bg-white p-2">
+            <div className={previewMode === "a4" ? "origin-top scale-[0.62]" : ""}>
+              <BillPreview
+                bill={sampleBill}
+                mode={previewMode}
+                template={previewMode === "a4" ? a4Template : thermalTemplate}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The selected templates are saved with this business profile and used for its bills.
+          </p>
+        </div>
+
         <div className="flex gap-2">
           <Button onClick={save}>
             <Plus /> {editingId ? "Update business" : "Add business"}
@@ -160,6 +256,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
                       nextInvoiceNo: String(f.nextInvoiceNo),
                       footer: f.footer,
                     });
+                    setA4Template(f.a4Template ?? 1);
+                    setThermalTemplate(f.thermalTemplate ?? 1);
                   }}
                 >
                   <Pencil className="h-4 w-4" />

@@ -9,7 +9,12 @@ export type Firm = {
   invoicePrefix: string;
   nextInvoiceNo: number;
   footer: string;
+  /** 1-5 layout preset for A4 invoices */
+  a4Template?: number;
+  /** 1-5 layout preset for 80mm receipts */
+  thermalTemplate?: number;
 };
+
 
 export type Item = {
   id: string;
@@ -38,8 +43,10 @@ export type SavedBill = {
   total: number;
   discount: number;
   payment: "Cash" | "UPI";
+  customer?: string;
   createdAt: number;
 };
+
 
 const KEY = "pos-data-v1";
 
@@ -61,7 +68,10 @@ function seed(): PosData {
     invoicePrefix: "INV-",
     nextInvoiceNo: 1,
     footer: "Thank you, visit again!",
+    a4Template: 1,
+    thermalTemplate: 1,
   };
+
   const items: Item[] = [
     { name: "Sugar", price: 46, unit: "kg" },
     { name: "Toor Dal", price: 132, unit: "kg" },

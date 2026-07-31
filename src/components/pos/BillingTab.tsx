@@ -1,22 +1,15 @@
-import { useMemo, useState } from "react";
-import { Bluetooth, Minus, Plus, Printer, Save, Search, Trash2, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { FileText, Minus, Plus, Receipt, Save, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BillPreview, billTotals, money, type BillData } from "./BillPreview";
+import { BillDialog } from "./BillDialog";
+import { PrinterBadge } from "./PrinterBadge";
 import type { CartLine, Firm, Item, PosData } from "@/lib/pos-store";
-import {
-  EscPosBuilder,
-  connectPrinter,
-  connectedPrinterName,
-  isBluetoothSupported,
-  printBytes,
-  row,
-} from "@/lib/escpos";
 
 type Props = {
   firm: Firm | null;
@@ -37,9 +30,9 @@ export function BillingTab({ firm, items, update, uid }: Props) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [discount, setDiscount] = useState(0);
   const [payment, setPayment] = useState<"Cash" | "UPI">("Cash");
-  const [preview, setPreview] = useState<null | "a4" | "thermal">(null);
+  const [preview, setPreview] = useState(false);
   const [printMode, setPrintMode] = useState<"a4" | "thermal">("a4");
-  const [printerName, setPrinterName] = useState<string | null>(connectedPrinterName());
+  const savedRef = useRef(false);
 
   const autoNo = firm ? `${firm.invoicePrefix}${String(firm.nextInvoiceNo).padStart(4, "0")}` : "";
   const effectiveNo = invoiceNo.trim() || autoNo;
@@ -117,6 +110,7 @@ export function BillingTab({ firm, items, update, uid }: Props) {
           total,
           discount,
           payment,
+          customer,
           createdAt: Date.now(),
         },
         ...d.bills,
@@ -131,59 +125,17 @@ export function BillingTab({ firm, items, update, uid }: Props) {
       toast.error("Cart is empty.");
       return;
     }
+    savedRef.current = false;
     setPrintMode(mode);
-    setPreview(mode);
+    setPreview(true);
   }
 
-  function doPrint() {
-    window.print();
+  /** Persist the bill once, the first time it is printed or downloaded. */
+  function saveOnce() {
+    if (savedRef.current) return;
+    savedRef.current = saveBill(true);
   }
 
-  async function handleConnect() {
-    if (!isBluetoothSupported()) {
-      toast.error("Web Bluetooth isn't available in this browser. Use Chrome on Android/desktop.");
-      return;
-    }
-    try {
-      const name = await connectPrinter();
-      setPrinterName(name);
-      toast.success(`Connected to ${name}`);
-    } catch (e) {
-      toast.error((e as Error).message || "Could not connect to printer.");
-    }
-  }
-
-  async function handleThermalPrint() {
-    if (lines.length === 0) return toast.error("Cart is empty.");
-    if (!connectedPrinterName()) return toast.error("Connect a thermal printer first.");
-    try {
-      const b = new EscPosBuilder().init().align("center").bold(true).size(1, 1);
-      b.line(firm?.name ?? "").size(0, 0).bold(false);
-      if (firm?.address) b.line(firm.address);
-      if (firm?.phone) b.line("Ph: " + firm.phone);
-      b.line("--------------------------------").align("left");
-      b.line(row(`No: ${effectiveNo}`, date));
-      b.line(row(customer ? `Cust: ${customer}` : "", time));
-      b.line("--------------------------------");
-      b.bold(true).line(row("ITEM  QTY x RATE", "AMOUNT")).bold(false);
-      b.line("--------------------------------");
-      lines.forEach((l) => {
-        b.line(l.name);
-        b.line(row(`  ${l.qty} x ${money(l.price)}`, money(l.price * l.qty)));
-      });
-      b.line("--------------------------------");
-      b.line(row("Subtotal", money(subtotal)));
-      if (discount > 0) b.line(row("Discount", "-" + money(discount)));
-      b.bold(true).line(row("TOTAL", "Rs." + money(total))).bold(false);
-      b.line(row("Paid by", payment));
-      b.line("--------------------------------");
-      b.align("center").line(firm?.footer ?? "").feed(3).cut();
-      await printBytes(b.build());
-      toast.success("Sent to thermal printer");
-    } catch (e) {
-      toast.error((e as Error).message || "Printing failed.");
-    }
-  }
 
   return (
     <div className="space-y-4 pb-32 lg:pb-6">
@@ -331,19 +283,16 @@ export function BillingTab({ firm, items, update, uid }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => openPreview("a4")}>
-            <Printer /> A4 Preview
+            <FileText /> A4 / PDF
           </Button>
           <Button variant="outline" onClick={() => openPreview("thermal")}>
-            <Printer /> 80mm Preview
+            <Receipt /> 80mm receipt
           </Button>
-          <Button variant={printerName ? "secondary" : "outline"} onClick={handleConnect}>
-            <Bluetooth /> {printerName ? printerName.slice(0, 12) : "Connect Printer"}
-          </Button>
-          <Button onClick={handleThermalPrint}>
-            <Printer /> Thermal Print
-          </Button>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <PrinterBadge />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="ghost" onClick={resetBill}>
@@ -358,32 +307,24 @@ export function BillingTab({ firm, items, update, uid }: Props) {
         </div>
       </Card>
 
-      <Dialog open={preview !== null} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{printMode === "a4" ? "A4 Invoice preview" : "80mm receipt preview"}</DialogTitle>
-          </DialogHeader>
-          <div className="rounded-lg border border-border bg-white">
-            <BillPreview bill={bill} mode={printMode} />
-          </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={() => setPreview(null)}>
-              Close
-            </Button>
-            <Button
-              onClick={() => {
-                saveBill(true);
-                doPrint();
-              }}
-            >
-              <Printer /> Print / Save as PDF
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+      <BillDialog
+        open={preview}
+        onOpenChange={(o) => {
+          setPreview(o);
+          if (!o && savedRef.current) resetBill();
+        }}
+        bill={bill}
+        mode={printMode}
+        onModeChange={setPrintMode}
+        template={printMode === "a4" ? (firm?.a4Template ?? 1) : (firm?.thermalTemplate ?? 1)}
+        onBeforePrint={saveOnce}
+      />
       <div className={`print-area ${printMode === "thermal" ? "thermal" : ""}`}>
-        <BillPreview bill={bill} mode={printMode} />
+        <BillPreview
+          bill={bill}
+          mode={printMode}
+          template={printMode === "a4" ? (firm?.a4Template ?? 1) : (firm?.thermalTemplate ?? 1)}
+        />
       </div>
     </div>
   );
