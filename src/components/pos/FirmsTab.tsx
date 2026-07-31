@@ -80,6 +80,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       invoicePrefix: form.invoicePrefix,
       nextInvoiceNo: Number(form.nextInvoiceNo) || 1,
       footer: form.footer,
+      a4Template,
+      thermalTemplate,
     };
     if (editingId) {
       update((d) => ({
@@ -93,6 +95,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       toast.success("Business added");
     }
     setForm({ ...blank });
+    setA4Template(1);
+    setThermalTemplate(1);
     setEditingId(null);
   }
 
