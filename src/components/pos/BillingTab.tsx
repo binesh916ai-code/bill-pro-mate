@@ -139,7 +139,7 @@ export function BillingTab({ firm, items, update, uid }: Props) {
 
   return (
     <div className="space-y-4 pb-32 lg:pb-6">
-      <Card className="gap-0 p-4">
+      <Card className="gap-3 border-border/60 p-4 shadow-sm">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Field label="Invoice No.">
             <Input
@@ -149,17 +149,32 @@ export function BillingTab({ firm, items, update, uid }: Props) {
               className="font-mono"
             />
           </Field>
-          <Field label="Customer (optional)">
-            <Input value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="Walk-in" />
-          </Field>
           <Field label="Date">
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
           <Field label="Time">
             <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </Field>
+          <div className="flex items-end">
+            <label className="flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-border bg-secondary/50 px-3 text-xs font-medium">
+              <span>Customer name</span>
+              <Switch checked={showCustomer} onCheckedChange={setShowCustomer} />
+            </label>
+          </div>
+          {showCustomer && (
+            <div className="lg:col-span-2">
+              <Field label="Customer (shown on bill)">
+                <Input
+                  value={customer}
+                  onChange={(e) => setCustomer(e.target.value)}
+                  placeholder="Customer name"
+                />
+              </Field>
+            </div>
+          )}
         </div>
       </Card>
+
 
       <Card className="gap-3 p-4">
         <div className="relative">
