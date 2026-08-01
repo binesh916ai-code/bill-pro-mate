@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+
 import { BillPreview, billTotals, money, type BillData } from "./BillPreview";
 import { BillDialog } from "./BillDialog";
 import { PrinterBadge } from "./PrinterBadge";
