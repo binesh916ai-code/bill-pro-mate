@@ -40,12 +40,22 @@ const SAMPLE_LINES = [
 
 export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
   const [form, setForm] = useState({ ...blank });
+  const [logo, setLogo] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [a4Template, setA4Template] = useState(1);
   const [thermalTemplate, setThermalTemplate] = useState(1);
   const [previewMode, setPreviewMode] = useState<"a4" | "thermal">("thermal");
 
   const set = (k: keyof typeof blank, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  function pickLogo(file: File | undefined) {
+    if (!file) return;
+    if (file.size > 400_000) return toast.error("Please choose a logo under 400 KB.");
+    const reader = new FileReader();
+    reader.onload = () => setLogo(String(reader.result));
+    reader.readAsDataURL(file);
+  }
+
 
   const sampleBill: BillData = {
     firm: {
