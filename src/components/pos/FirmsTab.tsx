@@ -67,6 +67,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       invoicePrefix: form.invoicePrefix,
       nextInvoiceNo: Number(form.nextInvoiceNo) || 1,
       footer: form.footer,
+      logo,
       a4Template,
       thermalTemplate,
     },
@@ -76,7 +77,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
     lines: SAMPLE_LINES,
     discount: 20,
     payment: "Cash",
-    customer: "Walk-in",
+    customer: "",
+
   };
 
 
