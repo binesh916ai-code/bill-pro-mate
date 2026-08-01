@@ -115,7 +115,8 @@ export function BillingTab({ firm, items, update, uid }: Props) {
           total,
           discount,
           payment,
-          customer,
+          customer: showCustomer ? customer : "",
+
           createdAt: Date.now(),
         },
         ...d.bills,
