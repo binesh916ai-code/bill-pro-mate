@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { Building2, Check, Image as ImageIcon, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,22 @@ const SAMPLE_LINES = [
 
 export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
   const [form, setForm] = useState({ ...blank });
+  const [logo, setLogo] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [a4Template, setA4Template] = useState(1);
   const [thermalTemplate, setThermalTemplate] = useState(1);
   const [previewMode, setPreviewMode] = useState<"a4" | "thermal">("thermal");
 
   const set = (k: keyof typeof blank, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  function pickLogo(file: File | undefined) {
+    if (!file) return;
+    if (file.size > 400_000) return toast.error("Please choose a logo under 400 KB.");
+    const reader = new FileReader();
+    reader.onload = () => setLogo(String(reader.result));
+    reader.readAsDataURL(file);
+  }
+
 
   const sampleBill: BillData = {
     firm: {
@@ -57,6 +67,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       invoicePrefix: form.invoicePrefix,
       nextInvoiceNo: Number(form.nextInvoiceNo) || 1,
       footer: form.footer,
+      logo,
       a4Template,
       thermalTemplate,
     },
@@ -66,7 +77,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
     lines: SAMPLE_LINES,
     discount: 20,
     payment: "Cash",
-    customer: "Walk-in",
+    customer: "",
+
   };
 
 
@@ -80,6 +92,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       invoicePrefix: form.invoicePrefix,
       nextInvoiceNo: Number(form.nextInvoiceNo) || 1,
       footer: form.footer,
+      logo,
       a4Template,
       thermalTemplate,
     };
@@ -95,9 +108,11 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       toast.success("Business added");
     }
     setForm({ ...blank });
+    setLogo("");
     setA4Template(1);
     setThermalTemplate(1);
     setEditingId(null);
+
   }
 
   return (
@@ -140,7 +155,33 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
             <Label className="text-xs text-muted-foreground">Bill footer message</Label>
             <Input value={form.footer} onChange={(e) => set("footer", e.target.value)} />
           </div>
+          <div className="space-y-1.5 lg:col-span-2">
+            <Label className="text-xs text-muted-foreground">Store logo (shown on bills)</Label>
+            <div className="flex items-center gap-3">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-secondary">
+                {logo ? (
+                  <img src={logo} alt="Store logo preview" className="h-full w-full object-contain" />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="max-w-[220px] cursor-pointer"
+                  onChange={(e) => pickLogo(e.target.files?.[0])}
+                />
+                {logo && (
+                  <Button variant="ghost" size="sm" onClick={() => setLogo("")}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
 
         <div className="space-y-3 rounded-xl border border-border p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -205,6 +246,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
               onClick={() => {
                 setEditingId(null);
                 setForm({ ...blank });
+                setLogo("");
+
               }}
             >
               Cancel
@@ -256,8 +299,10 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
                       nextInvoiceNo: String(f.nextInvoiceNo),
                       footer: f.footer,
                     });
+                    setLogo(f.logo ?? "");
                     setA4Template(f.a4Template ?? 1);
                     setThermalTemplate(f.thermalTemplate ?? 1);
+
                   }}
                 >
                   <Pencil className="h-4 w-4" />

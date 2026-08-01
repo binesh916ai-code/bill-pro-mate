@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+
 import { BillPreview, billTotals, money, type BillData } from "./BillPreview";
 import { BillDialog } from "./BillDialog";
 import { PrinterBadge } from "./PrinterBadge";
@@ -26,6 +28,8 @@ export function BillingTab({ firm, items, update, uid }: Props) {
   const [date, setDate] = useState(todayStr);
   const [time, setTime] = useState(nowStr);
   const [customer, setCustomer] = useState("");
+  const [showCustomer, setShowCustomer] = useState(false);
+
   const [query, setQuery] = useState("");
   const [lines, setLines] = useState<CartLine[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -53,7 +57,8 @@ export function BillingTab({ firm, items, update, uid }: Props) {
     lines,
     discount,
     payment,
-    customer,
+    customer: showCustomer ? customer : "",
+
   };
 
   function addItem(item: Item) {
@@ -110,7 +115,8 @@ export function BillingTab({ firm, items, update, uid }: Props) {
           total,
           discount,
           payment,
-          customer,
+          customer: showCustomer ? customer : "",
+
           createdAt: Date.now(),
         },
         ...d.bills,
@@ -139,7 +145,7 @@ export function BillingTab({ firm, items, update, uid }: Props) {
 
   return (
     <div className="space-y-4 pb-32 lg:pb-6">
-      <Card className="gap-0 p-4">
+      <Card className="gap-3 border-border/60 p-4 shadow-sm">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Field label="Invoice No.">
             <Input
@@ -149,17 +155,32 @@ export function BillingTab({ firm, items, update, uid }: Props) {
               className="font-mono"
             />
           </Field>
-          <Field label="Customer (optional)">
-            <Input value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="Walk-in" />
-          </Field>
           <Field label="Date">
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
           <Field label="Time">
             <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </Field>
+          <div className="flex items-end">
+            <label className="flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-border bg-secondary/50 px-3 text-xs font-medium">
+              <span>Customer name</span>
+              <Switch checked={showCustomer} onCheckedChange={setShowCustomer} />
+            </label>
+          </div>
+          {showCustomer && (
+            <div className="lg:col-span-2">
+              <Field label="Customer (shown on bill)">
+                <Input
+                  value={customer}
+                  onChange={(e) => setCustomer(e.target.value)}
+                  placeholder="Customer name"
+                />
+              </Field>
+            </div>
+          )}
         </div>
       </Card>
+
 
       <Card className="gap-3 p-4">
         <div className="relative">
