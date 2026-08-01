@@ -155,7 +155,33 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
             <Label className="text-xs text-muted-foreground">Bill footer message</Label>
             <Input value={form.footer} onChange={(e) => set("footer", e.target.value)} />
           </div>
+          <div className="space-y-1.5 lg:col-span-2">
+            <Label className="text-xs text-muted-foreground">Store logo (shown on bills)</Label>
+            <div className="flex items-center gap-3">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-secondary">
+                {logo ? (
+                  <img src={logo} alt="Store logo preview" className="h-full w-full object-contain" />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="max-w-[220px] cursor-pointer"
+                  onChange={(e) => pickLogo(e.target.files?.[0])}
+                />
+                {logo && (
+                  <Button variant="ghost" size="sm" onClick={() => setLogo("")}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
 
         <div className="space-y-3 rounded-xl border border-border p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
