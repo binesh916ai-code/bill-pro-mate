@@ -62,54 +62,64 @@ function PosApp() {
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-center" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(70%_60%_at_50%_0%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent)]" />
 
-      <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur print:hidden">
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-card/80 backdrop-blur-xl print:hidden">
         <div className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink text-primary-foreground">
-              <Receipt className="h-4 w-4" />
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-ink text-primary-foreground shadow-lg shadow-primary/20 ring-1 ring-white/10">
+              <Receipt className="h-4.5 w-4.5" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold tracking-tight">CounterBook POS</h1>
+              <h1 className="truncate text-sm font-extrabold tracking-tight">CounterBook POS</h1>
               <p className="truncate text-[11px] text-muted-foreground">
                 {firm?.name ?? "No store selected"}
               </p>
             </div>
           </div>
-          {ready && data.firms.length > 0 && (
-            <Select
-              value={firm?.id}
-              onValueChange={(v) => update((d) => ({ ...d, activeFirmId: v }))}
+          <div className="flex shrink-0 items-center gap-2">
+            {ready && data.firms.length > 0 && (
+              <Select
+                value={firm?.id}
+                onValueChange={(v) => update((d) => ({ ...d, activeFirmId: v }))}
+              >
+                <SelectTrigger className="w-[132px] shrink-0 rounded-xl sm:w-[220px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {data.firms.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggle}
+              className="shrink-0 rounded-xl"
+              aria-label="Toggle dark mode"
             >
-              <SelectTrigger className="w-[150px] shrink-0 sm:w-[220px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {data.firms.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>
-                    {f.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
 
         <div className="mx-auto flex max-w-5xl px-4 pb-1">
           <PrinterBadge />
         </div>
 
-
-
-        <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-3 pb-2">
+        <nav className="mx-auto mt-1 flex max-w-5xl gap-1 overflow-x-auto px-3 pb-2">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition-all ${
                 tab === t.id
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-ink text-primary-foreground shadow-md shadow-primary/15"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               <t.icon className="h-4 w-4" /> {t.label}
@@ -117,6 +127,7 @@ function PosApp() {
           ))}
         </nav>
       </header>
+
 
       <main className="mx-auto max-w-5xl px-4 py-4">
         {!ready ? (
