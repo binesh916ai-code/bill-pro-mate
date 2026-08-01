@@ -18,6 +18,8 @@ import { FirmsTab } from "@/components/pos/FirmsTab";
 import { HistoryTab } from "@/components/pos/HistoryTab";
 import { PrinterBadge } from "@/components/pos/PrinterBadge";
 import { usePosData } from "@/lib/pos-store";
+import { useTheme } from "@/lib/theme";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
