@@ -28,6 +28,8 @@ export function BillingTab({ firm, items, update, uid }: Props) {
   const [date, setDate] = useState(todayStr);
   const [time, setTime] = useState(nowStr);
   const [customer, setCustomer] = useState("");
+  const [showCustomer, setShowCustomer] = useState(false);
+
   const [query, setQuery] = useState("");
   const [lines, setLines] = useState<CartLine[]>([]);
   const [discount, setDiscount] = useState(0);
