@@ -50,6 +50,8 @@ type TabId = (typeof TABS)[number]["id"];
 
 function PosApp() {
   const { data, ready, update, uid } = usePosData();
+  const { theme, toggle } = useTheme();
+
   const [tab, setTab] = useState<TabId>("billing");
 
   const firm = useMemo(
