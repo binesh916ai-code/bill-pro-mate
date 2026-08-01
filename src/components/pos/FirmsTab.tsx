@@ -246,6 +246,8 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
               onClick={() => {
                 setEditingId(null);
                 setForm({ ...blank });
+                setLogo("");
+
               }}
             >
               Cancel
