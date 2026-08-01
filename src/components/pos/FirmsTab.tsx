@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { Building2, Check, Image as ImageIcon, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
