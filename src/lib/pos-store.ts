@@ -9,11 +9,14 @@ export type Firm = {
   invoicePrefix: string;
   nextInvoiceNo: number;
   footer: string;
+  /** Data-URL of the uploaded store logo */
+  logo?: string;
   /** 1-5 layout preset for A4 invoices */
   a4Template?: number;
-  /** 1-5 layout preset for 80mm receipts */
+  /** 1-10 layout preset for 80mm receipts */
   thermalTemplate?: number;
 };
+
 
 
 export type Item = {
