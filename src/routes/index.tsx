@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Boxes, Building2, History, Receipt } from "lucide-react";
+import { Boxes, Building2, History, Moon, Receipt, Sun } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+
 import {
   Select,
   SelectContent,
