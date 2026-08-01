@@ -57,7 +57,8 @@ export function BillingTab({ firm, items, update, uid }: Props) {
     lines,
     discount,
     payment,
-    customer,
+    customer: showCustomer ? customer : "",
+
   };
 
   function addItem(item: Item) {
