@@ -54,18 +54,76 @@ export class EscPosBuilder {
   }
 }
 
-/** pad a 2-column row to `width` chars (32 for 80mm font A) */
-export function row(left: string, right: string, width = 32) {
-  const l = left.length + right.length > width ? left.slice(0, width - right.length - 1) : left;
+/** pad a 2-column row to `width` chars (48 for 80mm, 32 for 58mm, font A) */
+export function row(left: string, right: string, width = 48) {
+  const l = left.length + right.length > width ? left.slice(0, Math.max(0, width - right.length - 1)) : left;
   const gap = Math.max(1, width - l.length - right.length);
   return l + " ".repeat(gap) + right;
 }
 
-export function center(s: string, width = 32) {
+export function center(s: string, width = 48) {
   if (s.length >= width) return s.slice(0, width);
   const pad = Math.floor((width - s.length) / 2);
   return " ".repeat(pad) + s;
 }
+
+export function repeat(ch: string, width = 48) {
+  return ch.repeat(width);
+}
+
+/** hard-wrap a string into fixed-width lines (optionally indenting continuations) */
+export function wrap(s: string, width: number, indent = "") {
+  const out: string[] = [];
+  let rest = s.trim();
+  let first = true;
+  const w = Math.max(4, width);
+  while (rest.length > 0) {
+    const limit = first ? w : w - indent.length;
+    if (rest.length <= limit) {
+      out.push((first ? "" : indent) + rest);
+      break;
+    }
+    let cut = rest.lastIndexOf(" ", limit);
+    if (cut <= 0) cut = limit;
+    out.push((first ? "" : indent) + rest.slice(0, cut).trimEnd());
+    rest = rest.slice(cut).trimStart();
+    first = false;
+  }
+  return out.length ? out : [""];
+}
+
+const padLeft = (s: string, n: number) =>
+  s.length >= n ? s.slice(s.length - n) : " ".repeat(n - s.length) + s;
+const padRight = (s: string, n: number) =>
+  s.length >= n ? s.slice(0, n) : s + " ".repeat(n - s.length);
+
+/**
+ * Fixed-width item row: NAME | QTY | RATE | AMOUNT.
+ * Long names wrap onto their own lines so the numeric columns never shift.
+ */
+export function itemRow(
+  name: string,
+  qty: string,
+  rate: string,
+  amount: string,
+  width = 48,
+): string[] {
+  const qtyW = width >= 48 ? 5 : 4;
+  const rateW = width >= 48 ? 9 : 7;
+  const amtW = width >= 48 ? 10 : 8;
+  const nameW = width - qtyW - rateW - amtW - 1;
+  const parts = wrap(name, nameW);
+  const head = padRight(parts[0]!, nameW);
+  const first =
+    head + " " + padLeft(qty, qtyW) + padLeft(rate, rateW) + padLeft(amount, amtW);
+  return [first, ...parts.slice(1).map((p) => p)];
+}
+
+/** Column header matching itemRow() */
+export function itemHeader(width = 48) {
+  return itemRow("ITEM", "QTY", "RATE", "AMOUNT", width)[0]!;
+}
+
 
 /* Minimal Web Bluetooth typings (not in default TS lib) */
 type BluetoothCharProps = { write: boolean; writeWithoutResponse: boolean };

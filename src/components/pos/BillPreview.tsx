@@ -58,17 +58,23 @@ export function BillPreview({
   bill,
   mode,
   template = 1,
+  paper,
 }: {
   bill: BillData;
   mode: "a4" | "thermal";
   template?: number;
+  /** thermal roll width in mm — 58 or 80 */
+  paper?: 58 | 80;
 }) {
   if (mode === "thermal") {
     const t = clampThermal(template);
     const def = THERMAL_TEMPLATES[t - 1];
+    const narrow = Number(paper ?? bill.firm?.paperSize ?? 80) === 58;
     return (
       <div
-        className="mx-auto w-[302px] bg-white p-3 text-[11px] leading-tight text-black"
+        className={`mx-auto bg-white p-3 leading-tight text-black ${
+          narrow ? "w-[220px] text-[10px]" : "w-[302px] text-[11px]"
+        }`}
         style={{ fontFamily: def.font }}
       >
         <Thermal bill={bill} def={def} />
@@ -81,6 +87,7 @@ export function BillPreview({
     </div>
   );
 }
+
 
 function Logo({ src, size = 44 }: { src?: string; size?: number }) {
   if (!src) return null;
@@ -314,6 +321,14 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
   const Totals = (
     <div className={`mt-2 space-y-[2px] ${rule} pt-1`}>
       <div className="flex justify-between">
+        <span>Items</span>
+        <span>{lines.length}</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Total Qty</span>
+        <span>{qtyTotal}</span>
+      </div>
+      <div className="flex justify-between">
         <span>Subtotal</span>
         <span>{money(subtotal)}</span>
       </div>
@@ -323,20 +338,17 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
           <span>-{money(discount)}</span>
         </div>
       )}
-      <div className={totalCls} style={t === 8 ? { fontFamily: def.headFont } : undefined}>
-        <span>TOTAL</span>
-        <span>Rs. {money(total)}</span>
-      </div>
       <div className="flex justify-between">
         <span>Paid by</span>
         <span>{bill.payment}</span>
       </div>
-      <div className="flex justify-between">
-        <span>Items</span>
-        <span>{qtyTotal}</span>
+      <div className={totalCls} style={t === 8 ? { fontFamily: def.headFont } : undefined}>
+        <span>TOTAL</span>
+        <span>Rs. {money(total)}</span>
       </div>
     </div>
   );
+
 
   const Foot = (
     <div className={`mt-3 ${t === 9 ? "text-left" : "text-center"}`}>

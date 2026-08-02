@@ -13,7 +13,7 @@ import {
   THERMAL_TEMPLATES,
   type BillData,
 } from "./BillPreview";
-import type { Firm, PosData } from "@/lib/pos-store";
+import type { Firm, PaperSize, PosData } from "@/lib/pos-store";
 
 type Props = {
   firms: Firm[];
@@ -45,6 +45,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
   const [a4Template, setA4Template] = useState(1);
   const [thermalTemplate, setThermalTemplate] = useState(1);
   const [previewMode, setPreviewMode] = useState<"a4" | "thermal">("thermal");
+  const [paperSize, setPaperSize] = useState<PaperSize>(80);
 
   const set = (k: keyof typeof blank, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -70,6 +71,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       logo,
       a4Template,
       thermalTemplate,
+      paperSize,
     },
     invoiceNo: `${form.invoicePrefix}${String(Number(form.nextInvoiceNo) || 1).padStart(4, "0")}`,
     date: new Date().toISOString().slice(0, 10),
@@ -95,6 +97,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       logo,
       a4Template,
       thermalTemplate,
+      paperSize,
     };
     if (editingId) {
       update((d) => ({
@@ -111,6 +114,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
     setLogo("");
     setA4Template(1);
     setThermalTemplate(1);
+    setPaperSize(80);
     setEditingId(null);
 
   }
@@ -195,11 +199,30 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
                     previewMode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                   }`}
                 >
-                  {m === "a4" ? "A4 / PDF" : "80mm receipt"}
+                  {m === "a4" ? "A4 / PDF" : `${paperSize}mm receipt`}
                 </button>
               ))}
             </div>
           </div>
+
+          {previewMode === "thermal" && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Paper width</span>
+              {([58, 80] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPaperSize(p)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    paperSize === p
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:border-primary"
+                  }`}
+                >
+                  {p}mm ({p === 58 ? "2-inch" : "3-inch"})
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             {(previewMode === "a4" ? A4_TEMPLATES : THERMAL_TEMPLATES).map((t) => {
@@ -228,6 +251,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
                 bill={sampleBill}
                 mode={previewMode}
                 template={previewMode === "a4" ? a4Template : thermalTemplate}
+                paper={paperSize}
               />
             </div>
           </div>
@@ -302,6 +326,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
                     setLogo(f.logo ?? "");
                     setA4Template(f.a4Template ?? 1);
                     setThermalTemplate(f.thermalTemplate ?? 1);
+                    setPaperSize(Number(f.paperSize) === 58 ? 58 : 80);
 
                   }}
                 >

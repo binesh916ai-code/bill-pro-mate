@@ -30,6 +30,7 @@ export function BillDialog({
   title,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const paper = (Number(bill.firm?.paperSize) === 58 ? 58 : 80) as 58 | 80;
   const [busy, setBusy] = useState(false);
 
   const fileName = `${bill.invoiceNo || "bill"}-${mode === "a4" ? "invoice" : "receipt"}`;
@@ -52,7 +53,7 @@ export function BillDialog({
     await withBusy(async () => {
       await ensurePrinter();
       onBeforePrint?.();
-      await printThermal(bill, template);
+      await printThermal(bill, template, paper);
     }, "Sent to thermal printer");
   }
 
@@ -60,7 +61,7 @@ export function BillDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{title ?? (mode === "a4" ? "A4 invoice" : "80mm receipt")}</DialogTitle>
+          <DialogTitle>{title ?? (mode === "a4" ? "A4 invoice" : `${paper}mm receipt`)}</DialogTitle>
         </DialogHeader>
 
         <div className="flex gap-2">
@@ -74,14 +75,14 @@ export function BillDialog({
                   : "border-border bg-background text-muted-foreground"
               }`}
             >
-              {m === "a4" ? "A4 / PDF" : "80mm thermal"}
+              {m === "a4" ? "A4 / PDF" : `${paper}mm thermal`}
             </button>
           ))}
         </div>
 
         <div className="overflow-auto rounded-lg border border-border bg-white">
           <div ref={ref}>
-            <BillPreview bill={bill} mode={mode} template={template} />
+            <BillPreview bill={bill} mode={mode} template={template} paper={paper} />
           </div>
         </div>
 
@@ -102,7 +103,7 @@ export function BillDialog({
             onClick={() =>
               withBusy(async () => {
                 onBeforePrint?.();
-                await saveBillPdf(ref.current!, mode, fileName);
+                await saveBillPdf(ref.current!, mode, fileName, paper);
               }, "PDF saved to your device")
             }
           >
