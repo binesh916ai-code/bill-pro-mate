@@ -340,7 +340,11 @@ export function BillingTab({ firm, items, update, uid }: Props) {
         template={printMode === "a4" ? (firm?.a4Template ?? 1) : (firm?.thermalTemplate ?? 1)}
         onBeforePrint={saveOnce}
       />
-      <div className={`print-area ${printMode === "thermal" ? "thermal" : ""}`}>
+      <div
+        className={`print-area ${printMode === "thermal" ? "thermal" : ""} ${
+          printMode === "thermal" && Number(firm?.paperSize) === 58 ? "narrow" : ""
+        }`}
+      >
         <BillPreview
           bill={bill}
           mode={printMode}
