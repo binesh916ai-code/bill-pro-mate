@@ -215,9 +215,10 @@ function PosApp() {
             <AlertDialogAction
               onClick={() => {
                 window.close();
-                window.history.back();
+                void navigate({ to: "/", replace: true });
               }}
             >
+
               Exit
             </AlertDialogAction>
           </AlertDialogFooter>
