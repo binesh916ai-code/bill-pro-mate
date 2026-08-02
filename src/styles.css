@@ -192,4 +192,9 @@
     width: 72mm;
     font-size: 11px;
   }
+  .print-area.thermal.narrow {
+    width: 50mm;
+    font-size: 10px;
+  }
 }
+
