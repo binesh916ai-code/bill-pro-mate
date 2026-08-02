@@ -58,17 +58,23 @@ export function BillPreview({
   bill,
   mode,
   template = 1,
+  paper,
 }: {
   bill: BillData;
   mode: "a4" | "thermal";
   template?: number;
+  /** thermal roll width in mm — 58 or 80 */
+  paper?: 58 | 80;
 }) {
   if (mode === "thermal") {
     const t = clampThermal(template);
     const def = THERMAL_TEMPLATES[t - 1];
+    const narrow = Number(paper ?? bill.firm?.paperSize ?? 80) === 58;
     return (
       <div
-        className="mx-auto w-[302px] bg-white p-3 text-[11px] leading-tight text-black"
+        className={`mx-auto bg-white p-3 leading-tight text-black ${
+          narrow ? "w-[220px] text-[10px]" : "w-[302px] text-[11px]"
+        }`}
         style={{ fontFamily: def.font }}
       >
         <Thermal bill={bill} def={def} />
@@ -81,6 +87,7 @@ export function BillPreview({
     </div>
   );
 }
+
 
 function Logo({ src, size = 44 }: { src?: string; size?: number }) {
   if (!src) return null;
