@@ -314,6 +314,14 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
   const Totals = (
     <div className={`mt-2 space-y-[2px] ${rule} pt-1`}>
       <div className="flex justify-between">
+        <span>Items</span>
+        <span>{lines.length}</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Total Qty</span>
+        <span>{qtyTotal}</span>
+      </div>
+      <div className="flex justify-between">
         <span>Subtotal</span>
         <span>{money(subtotal)}</span>
       </div>
@@ -323,20 +331,17 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
           <span>-{money(discount)}</span>
         </div>
       )}
-      <div className={totalCls} style={t === 8 ? { fontFamily: def.headFont } : undefined}>
-        <span>TOTAL</span>
-        <span>Rs. {money(total)}</span>
-      </div>
       <div className="flex justify-between">
         <span>Paid by</span>
         <span>{bill.payment}</span>
       </div>
-      <div className="flex justify-between">
-        <span>Items</span>
-        <span>{qtyTotal}</span>
+      <div className={totalCls} style={t === 8 ? { fontFamily: def.headFont } : undefined}>
+        <span>TOTAL</span>
+        <span>Rs. {money(total)}</span>
       </div>
     </div>
   );
+
 
   const Foot = (
     <div className={`mt-3 ${t === 9 ? "text-left" : "text-center"}`}>
