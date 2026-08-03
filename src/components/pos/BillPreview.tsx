@@ -439,7 +439,6 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
         <span>Paid by</span>
         <span>{bill.payment}</span>
       </div>
-      {compact && place === "banner" ? null : null}
       {GrandTotalBlock}
     </div>
   );
@@ -458,6 +457,10 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
     <>
       {Head}
       {Meta}
+      {HeaderSummary}
+      {Items}
+      {InlineSummary}
+
       {Items}
       {Totals}
       {Foot}
