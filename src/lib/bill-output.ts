@@ -5,10 +5,13 @@ import { EscPosBuilder, center, itemHeader, itemRow, printBytes, repeat, row, wr
 import { billTotals, money, type BillData } from "@/components/pos/BillPreview";
 import { paperColumns, type PaperSize } from "@/lib/pos-store";
 
+/** letter-spaced text, e.g. "SHOP" -> "S H O P" (used by poster/ticket templates) */
+const spaced = (s: string, gap = " ") => s.split("").join(gap);
+
 /**
- * Build ESC/POS bytes for one of the 10 premium receipt templates.
- * Every row is padded to the exact column count of the roll (48 = 80mm, 32 = 58mm)
- * so item/qty/rate/amount columns line up on any ESC/POS printer.
+ * Build ESC/POS bytes so the physical print mirrors the on-screen template.
+ * Each of the 10 thermal templates has its own header, separators, meta block,
+ * item table style, qty-summary placement and grand-total treatment.
  */
 export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80) {
   const t = Math.min(10, Math.max(1, Number(template) || 1));
@@ -22,47 +25,98 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   const dot = repeat(".", W);
   const wave = repeat("~", W);
   const star = repeat("*", W);
+  const dashSpaced = repeat("- ", Math.floor(W / 2));
 
-  // per-template separator + header personality
-  const sep = [dash, dot, dash, dot, solid, solid, dot, dash, wave, star][t - 1]!;
-  const bigName = t === 3 || t === 5 || t === 7 || t === 8 || t === 10;
+  // separator personality per template (mirrors the CSS border of each design)
+  const sep = [solid, dash, solid, dashSpaced, solid, solid, dashSpaced, dashSpaced, dot, dash][t - 1]!;
 
   const b = new EscPosBuilder().init().align("center");
 
   /* ---------------- header ---------------- */
-  if (t === 2 || t === 9) b.line(sep);
-  b.bold(true)
-    .size(bigName ? 1 : 0, 1)
-    .line(firm?.name ?? "")
-    .size(0, 0)
-    .bold(false);
-  if (firm?.address) wrap(firm.address, W).forEach((l) => b.line(center(l.trim(), W)));
-  if (firm?.phone) b.line(center("Ph " + firm.phone, W));
-  if (firm?.gstin) b.line(center("GSTIN " + firm.gstin, W));
-  if (t === 4) b.line(center("* TAX FREE CASH INVOICE *", W));
-  if (t === 8) b.line(center("CASH RECEIPT", W));
-  if (t === 6) b.line(center("R E T A I L   I N V O I C E", W));
-  b.align("left").line(sep);
+  const name = (firm?.name ?? "Your Business").trim();
+  if (t === 5) b.line(solid); // bordered typewriter
+  if (t === 10) b.line(dash); // grid grotesk frame
 
-  /* ---------------- meta ---------------- */
-  if (t === 9) {
-    b.line("> INVOICE : " + bill.invoiceNo);
-    b.line("> DATE    : " + bill.date);
-    b.line("> TIME    : " + bill.time);
-    if (customer) b.line("> CUSTOMER: " + customer);
-  } else if (t === 8 || t === 3) {
-    b.align("center").line(bill.invoiceNo).line(bill.date + "  " + bill.time);
-    if (customer) b.line(customer);
-    b.align("left");
-  } else if (t === 6 || t === 10) {
-    b.line(row("BILL NO", bill.invoiceNo, W));
-    b.line(row("DATE", bill.date, W));
-    b.line(row("TIME", bill.time, W));
-    if (customer) b.line(row("CUSTOMER", customer, W));
+  b.align(t === 2 || t === 6 || t === 9 ? "left" : "center");
+
+  switch (t) {
+    case 1: // Modern Mono — inverted name plate
+      b.invert(true).bold(true).line(" " + name.toUpperCase() + " ").bold(false).invert(false);
+      break;
+    case 3: // Compact Condensed — wide tracked caps
+      b.size(1, 1).line(spaced(name.toUpperCase())).size(0, 0);
+      break;
+    case 4: // Classic Serif — tracked caps
+      b.bold(true).line(spaced(name.toUpperCase())).bold(false);
+      break;
+    case 6: // Bold Poster — double width + heavy rule
+      b.bold(true).size(1, 1).line(name.toUpperCase()).size(0, 0).bold(false);
+      break;
+    case 7: // Elegant Garamond — double height, title case
+      b.size(0, 1).line(name).size(0, 0);
+      break;
+    case 8: // Ticket Stub — big display name
+      b.bold(true).size(1, 1).line(spaced(name.toUpperCase())).size(0, 0).bold(false);
+      break;
+    case 10: // Grid Grotesk
+      b.bold(true).size(1, 0).line(name.toUpperCase()).size(0, 0).bold(false);
+      break;
+    default: // 2, 5, 9
+      b.bold(true).line(t === 2 ? name : name.toUpperCase()).bold(false);
+  }
+
+  const leftHead = t === 2 || t === 6 || t === 9;
+  const put = (s: string) => b.line(leftHead ? s : center(s, W));
+  if (t !== 3 && firm?.address) wrap(firm.address, W).forEach((l) => put(l.trim()));
+  if (firm?.phone) put("Ph: " + firm.phone);
+  if (firm?.gstin) put("GSTIN: " + firm.gstin);
+  if (t === 4) b.line(center(spaced("* INVOICE *", ""), W));
+  if (t === 8) b.line(center(spaced("CASH RECEIPT"), W));
+  if (t === 6) b.line(solid);
+  b.align("left");
+  if (t !== 6) b.line(sep);
+
+  /* ---------------- meta (unique per template) ---------------- */
+  if (t === 2) {
+    b.line("Invoice  " + bill.invoiceNo);
+    b.line("Date     " + bill.date + " · " + bill.time);
+    if (customer) b.line("Customer " + customer);
+  } else if (t === 3) {
+    b.line(row(bill.invoiceNo.toUpperCase(), (bill.date + " " + bill.time).toUpperCase(), W));
+    b.line(sep);
+  } else if (t === 6) {
+    b.line(row("BILL NO", "DATE / TIME", W));
+    b.bold(true).line(row(bill.invoiceNo, bill.date + " " + bill.time, W)).bold(false);
+    if (customer) b.line("CUSTOMER: " + customer);
+  } else if (t === 7) {
+    b.align("center")
+      .line(center([bill.invoiceNo, bill.date, bill.time, customer].filter(Boolean).join(" · "), W))
+      .align("left")
+      .line(dashSpaced);
+  } else if (t === 8) {
+    b.align("center");
+    b.line(dashSpaced);
+    b.size(1, 0).line(bill.invoiceNo).size(0, 0);
+    b.line(center((bill.date + " — " + bill.time).toUpperCase(), W));
+    if (customer) b.line(center(customer, W));
+    b.line(dashSpaced).align("left");
+  } else if (t === 9) {
+    b.line("> INVOICE  : " + bill.invoiceNo);
+    b.line("> DATE     : " + bill.date);
+    b.line("> TIME     : " + bill.time);
+    if (customer) b.line("> CUSTOMER : " + customer);
+  } else if (t === 10) {
+    const col = Math.floor(W / 3);
+    const cell = (a: string, c: string) =>
+      a.padEnd(col).slice(0, col) + c.padEnd(col).slice(0, col);
+    b.line(cell("BILL", "DATE") + "TIME");
+    b.bold(true).line(cell(bill.invoiceNo, bill.date) + bill.time).bold(false);
+    if (customer) b.line("CUSTOMER: " + customer);
   } else {
     b.line(row("No: " + bill.invoiceNo, bill.date, W));
     b.line(row(customer ? "Cust: " + customer : "", bill.time, W));
   }
+
   /* summary placement per template: column | header | inline | banner */
   const place =
     t === 1 || t === 5 || t === 9
@@ -74,27 +128,42 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
           : "banner";
 
   if (place === "header") {
-    if (t === 3) b.align("center").line(`${lines.length} ITEMS  ·  QTY ${qtyTotal}`).align("left");
+    if (t === 3) b.align("center").line(center(`${lines.length} ITEMS   QTY ${qtyTotal}`, W)).align("left");
     else b.line(row("ITEMS  " + lines.length, "TOTAL QTY  " + qtyTotal, W));
   }
   b.line(sep);
 
-  /* ---------------- items (fixed columns) ---------------- */
-  b.bold(true).line(itemHeader(W)).bold(false);
-  b.line(t === 5 || t === 6 ? repeat("=", W) : dash);
-  lines.forEach((l) => {
-    itemRow(
-      t === 4 ? l.name.toUpperCase() : l.name,
-      String(l.qty),
-      money(l.price),
-      money(l.price * l.qty),
-      W,
-    ).forEach((r) => b.line(r));
-  });
+  /* ---------------- items (style mirrors the preview) ---------------- */
+  const compact = t === 3 || t === 8; // "2x Item .......... amount"
+  const stacked = t === 4 || t === 7; // name on its own line, qty × rate below
+
+  if (compact) {
+    lines.forEach((l) => {
+      const label = `${l.qty}x ${t === 3 ? l.name.toUpperCase() : l.name}`;
+      wrap(label, W - 10).forEach((part, i, arr) =>
+        b.line(i === arr.length - 1 ? row(part, money(l.price * l.qty), W) : part),
+      );
+    });
+  } else if (stacked) {
+    lines.forEach((l) => {
+      wrap(t === 4 ? l.name.toUpperCase() : l.name, W).forEach((p) => b.line(p));
+      b.line(row(`  ${l.qty} ${l.unit ?? ""} x ${money(l.price)}`.trimEnd(), money(l.price * l.qty), W));
+      if (t === 7) b.line(dashSpaced);
+    });
+  } else {
+    b.bold(true).line(itemHeader(W)).bold(false);
+    b.line(t === 2 || t === 10 ? dash : dashSpaced);
+    lines.forEach((l) => {
+      itemRow(l.name, String(l.qty), money(l.price), money(l.price * l.qty), W).forEach((r) =>
+        b.line(r),
+      );
+      if (t === 1 || t === 5) b.line(dot);
+    });
+  }
 
   /* Option A — total qty padded directly under the QTY column */
   if (place === "column") {
-    b.line(t === 9 ? dash : repeat("-", W));
+    b.line(t === 9 ? dot : dash);
     b.bold(true)
       .line(itemRow(`${lines.length} ITEM${lines.length === 1 ? "" : "S"}`, String(qtyTotal), "", "", W)[0]!)
       .bold(false);
@@ -104,55 +173,68 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
 
   /* Option C — single sleek inline summary row */
   if (place === "inline") {
-    if (t === 7) b.align("center").line(`- ITEMS: ${lines.length}  |  TOTAL QTY: ${qtyTotal} -`).align("left");
-    else b.line(row("ITEMS: " + lines.length, "TOTAL QTY: " + qtyTotal, W));
-    b.line(dash);
+    if (t === 7)
+      b.align("center").line(center(`- items: ${lines.length} | total qty: ${qtyTotal} -`, W)).align("left");
+    else b.align("center").line(center(`ITEMS: ${lines.length}  |  TOTAL QTY: ${qtyTotal}`, W)).align("left");
+    b.line(t === 7 ? dashSpaced : dash);
   }
 
   /* ---------------- totals block ---------------- */
   b.line(row("Subtotal", money(subtotal), W));
   if (discount > 0) b.line(row("Discount", "-" + money(discount), W));
   b.line(row("Paid by", payment, W));
-  b.line(t === 5 || t === 6 || t === 10 ? repeat("=", W) : dash);
 
   /* Option D — summary folded into the grand-total banner */
   if (place === "banner") {
-    if (t === 8) {
+    if (t === 4) {
+      b.line(solid);
+      b.line(row("ITEMS " + lines.length, "QTY " + qtyTotal, W));
+      b.bold(true).line(row(spaced("TOTAL", ""), "Rs. " + money(total), W)).bold(false);
+      b.line(solid);
+    } else if (t === 8) {
       b.align("center")
-        .line(`${lines.length} ITEMS  ·  ${qtyTotal} QTY`)
+        .line(center(`${lines.length} ITEMS · ${qtyTotal} QTY`, W))
         .bold(true)
-        .size(0, 1)
+        .size(1, 1)
         .line("Rs." + money(total))
         .size(0, 0)
-        .line("TOTAL PAYABLE")
         .bold(false)
+        .line(center(spaced("TOTAL PAYABLE"), W))
         .align("left");
     } else {
-      b.bold(true)
-        .size(0, t === 10 ? 1 : 0)
-        .line(row("GRAND TOTAL", "Rs." + money(total), W))
-        .size(0, 0)
-        .bold(false);
+      // 10 — dark banner feel via reverse printing
+      b.invert(true)
+        .bold(true)
+        .line(row(" GRAND TOTAL", "Rs. " + money(total) + " ", W))
+        .bold(false)
+        .invert(false);
       b.line(row("Items " + lines.length, "Total qty " + qtyTotal, W));
     }
-  } else if (t === 1 || t === 5 || t === 6) {
-    b.bold(true)
-      .size(0, 1)
-      .line(row("TOTAL", "Rs." + money(total), W))
-      .size(0, 0)
-      .bold(false);
+  } else if (t === 1) {
+    b.invert(true).bold(true).line(row(" TOTAL", "Rs. " + money(total) + " ", W)).bold(false).invert(false);
+  } else if (t === 6) {
+    b.line(solid);
+    b.bold(true).size(0, 1).line(row("TOTAL", "Rs. " + money(total), W)).size(0, 0).bold(false);
+    b.line(solid);
+  } else if (t === 5 || t === 9) {
+    b.line(dash);
+    b.bold(true).size(0, 1).line(row("TOTAL", "Rs. " + money(total), W)).size(0, 0).bold(false);
+    b.line(dash);
   } else {
-    b.bold(true).line(row("TOTAL", "Rs." + money(total), W)).bold(false);
+    b.bold(true).line(row("TOTAL", "Rs. " + money(total), W)).bold(false);
   }
-  b.line(sep);
-
+  if (t === 5 || t === 10) b.line(t === 5 ? solid : dash);
 
   /* ---------------- footer: only the custom message ---------------- */
-  b.align("center");
-  if (firm?.footer) wrap(firm.footer, W).forEach((l) => b.line(center(l.trim(), W)));
-  b.feed(3).cut();
+  b.align(t === 9 ? "left" : "center");
+  if (firm?.footer)
+    wrap(firm.footer, W).forEach((l) =>
+      b.line(t === 9 ? l.trim() : center(t === 3 || t === 4 ? l.trim().toUpperCase() : l.trim(), W)),
+    );
+  b.align("left").feed(3).cut();
   return b.build();
 }
+
 
 export async function printThermal(bill: BillData, template = 1, paper: PaperSize = 80) {
   await printBytes(buildReceipt(bill, template, paper));
