@@ -63,6 +63,20 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
     b.line(row("No: " + bill.invoiceNo, bill.date, W));
     b.line(row(customer ? "Cust: " + customer : "", bill.time, W));
   }
+  /* summary placement per template: column | header | inline | banner */
+  const place =
+    t === 1 || t === 5 || t === 9
+      ? "column"
+      : t === 3 || t === 6
+        ? "header"
+        : t === 2 || t === 7
+          ? "inline"
+          : "banner";
+
+  if (place === "header") {
+    if (t === 3) b.align("center").line(`${lines.length} ITEMS  ·  QTY ${qtyTotal}`).align("left");
+    else b.line(row("ITEMS  " + lines.length, "TOTAL QTY  " + qtyTotal, W));
+  }
   b.line(sep);
 
   /* ---------------- items (fixed columns) ---------------- */
@@ -77,16 +91,52 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
       W,
     ).forEach((r) => b.line(r));
   });
+
+  /* Option A — total qty padded directly under the QTY column */
+  if (place === "column") {
+    b.line(t === 9 ? dash : repeat("-", W));
+    b.bold(true)
+      .line(itemRow(`${lines.length} ITEM${lines.length === 1 ? "" : "S"}`, String(qtyTotal), "", "", W)[0]!)
+      .bold(false);
+  }
+
   b.line(sep);
 
+  /* Option C — single sleek inline summary row */
+  if (place === "inline") {
+    const inline = `ITEMS: ${lines.length}  |  TOTAL QTY: ${qtyTotal}`;
+    if (t === 7) b.align("center").line(`- ${inline} -`).align("left");
+    else b.line(row("ITEMS: " + lines.length, "TOTAL QTY: " + qtyTotal, W));
+    b.line(dash);
+  }
+
   /* ---------------- totals block ---------------- */
-  b.line(row("Items", String(lines.length), W));
-  b.line(row("Total Qty", String(qtyTotal), W));
   b.line(row("Subtotal", money(subtotal), W));
   if (discount > 0) b.line(row("Discount", "-" + money(discount), W));
   b.line(row("Paid by", payment, W));
   b.line(t === 5 || t === 6 || t === 10 ? repeat("=", W) : dash);
-  if (t === 1 || t === 5 || t === 6 || t === 8 || t === 10) {
+
+  /* Option D — summary folded into the grand-total banner */
+  if (place === "banner") {
+    if (t === 8) {
+      b.align("center")
+        .line(`${lines.length} ITEMS  ·  ${qtyTotal} QTY`)
+        .bold(true)
+        .size(0, 1)
+        .line("Rs." + money(total))
+        .size(0, 0)
+        .line("TOTAL PAYABLE")
+        .bold(false)
+        .align("left");
+    } else {
+      b.bold(true)
+        .size(0, t === 10 ? 1 : 0)
+        .line(row("GRAND TOTAL", "Rs." + money(total), W))
+        .size(0, 0)
+        .bold(false);
+      b.line(row("Items " + lines.length, "Total qty " + qtyTotal, W));
+    }
+  } else if (t === 1 || t === 5 || t === 6) {
     b.bold(true)
       .size(0, 1)
       .line(row("TOTAL", "Rs." + money(total), W))
@@ -96,6 +146,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
     b.bold(true).line(row("TOTAL", "Rs." + money(total), W)).bold(false);
   }
   b.line(sep);
+
 
   /* ---------------- footer: only the custom message ---------------- */
   b.align("center");
