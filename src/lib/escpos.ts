@@ -31,6 +31,12 @@ export class EscPosBuilder {
     return this.raw(GS, 0x21, (w << 4) | h);
   }
 
+  /** white-on-black reverse printing (GS B n) */
+  invert(on: boolean) {
+    return this.raw(GS, 0x42, on ? 1 : 0);
+  }
+
+
   text(s: string) {
     const enc = new TextEncoder().encode(s);
     this.parts.push(...Array.from(enc));
