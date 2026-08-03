@@ -367,7 +367,7 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
         </div>
       ))}
       {QtyFooterRow}
-      {InlineSummary}
+
     </div>
   );
 
