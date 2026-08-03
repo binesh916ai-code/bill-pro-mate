@@ -251,9 +251,71 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
     );
   }
 
+  /* --- Where does the Items / Total-Qty summary live in this template? --- */
+  const place: "column" | "header" | "inline" | "banner" =
+    t === 1 || t === 5 || t === 9
+      ? "column"
+      : t === 3 || t === 6
+        ? "header"
+        : t === 2 || t === 7
+          ? "inline"
+          : "banner";
+
+  /* Option B — summary inside the header/meta section */
+  const HeaderSummary =
+    place !== "header" ? null : t === 3 ? (
+      <div className="flex justify-between border-b border-black py-[2px] text-[10px] tracking-[0.12em] uppercase">
+        <span>{lines.length} items</span>
+        <span>qty {qtyTotal}</span>
+      </div>
+    ) : (
+      <div className="mt-1 grid grid-cols-2 gap-x-2 border-y border-black/40 py-[2px] text-[10px] uppercase">
+        <div>
+          <span className="text-black/50">Items </span>
+          <span className="font-semibold">{lines.length}</span>
+        </div>
+        <div className="text-right">
+          <span className="text-black/50">Total qty </span>
+          <span className="font-semibold">{qtyTotal}</span>
+        </div>
+      </div>
+    );
+
+  /* Option C — single sleek divider row */
+  const InlineSummary =
+    place !== "inline" ? null : t === 2 ? (
+      <div className="mt-1 flex justify-center gap-2 border-y border-black/30 py-[3px] text-[10px] tracking-wide uppercase">
+        <span>Items: {lines.length}</span>
+        <span className="text-black/30">|</span>
+        <span>Total Qty: {qtyTotal}</span>
+      </div>
+    ) : (
+      <div className="mt-1 text-center text-[11px] italic">
+        — items: {lines.length} | total qty: {qtyTotal} —
+      </div>
+    );
+
   /* --- Items --- */
   const compact = t === 3 || t === 8;
   const stacked = t === 4 || t === 7;
+
+  /* Option A — a table footer row aligned under the QTY column */
+  const QtyFooterRow =
+    place !== "column" ? null : (
+      <div
+        className={`flex pt-[2px] font-semibold ${
+          t === 9 ? "border-t border-dashed border-black" : "border-t border-black"
+        }`}
+      >
+        <span className="flex-1 pr-1 text-[10px] tracking-wide uppercase">
+          {lines.length} item{lines.length === 1 ? "" : "s"}
+        </span>
+        <span className="w-8 text-right">{qtyTotal}</span>
+        <span className="w-14" />
+        <span className="w-16" />
+      </div>
+    );
+
   const Items = compact ? (
     <div className="mt-2">
       {lines.map((l) => (
@@ -304,6 +366,8 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
           <span className="w-16 text-right">{money(l.price * l.qty)}</span>
         </div>
       ))}
+      {QtyFooterRow}
+      {InlineSummary}
     </div>
   );
 
@@ -318,16 +382,49 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
             ? "mt-1 flex justify-between text-[18px]"
             : "flex justify-between border-y border-black py-1 text-[13px] font-bold";
 
+  /* Option D — the summary lives inside the grand-total banner */
+  const GrandTotalBlock =
+    place === "banner" ? (
+      t === 4 ? (
+        <div className="mt-1 border-y-2 border-black py-1">
+          <div className="flex justify-between text-[9px] tracking-[0.2em] uppercase">
+            <span>Items {lines.length}</span>
+            <span>Qty {qtyTotal}</span>
+          </div>
+          <div className="flex justify-between text-[14px] font-bold tracking-wide uppercase">
+            <span>Total</span>
+            <span>Rs. {money(total)}</span>
+          </div>
+        </div>
+      ) : t === 8 ? (
+        <div className="mt-1 text-center" style={{ fontFamily: def.headFont }}>
+          <div className="text-[9px] tracking-[0.3em] uppercase">
+            {lines.length} items · {qtyTotal} qty
+          </div>
+          <div className="text-[20px] leading-tight">Rs. {money(total)}</div>
+          <div className="text-[9px] tracking-[0.3em] uppercase">total payable</div>
+        </div>
+      ) : (
+        <div className="mt-1 bg-black px-2 py-[6px] text-white">
+          <div className="flex justify-between text-[13px] font-bold">
+            <span>GRAND TOTAL</span>
+            <span>Rs. {money(total)}</span>
+          </div>
+          <div className="flex justify-between text-[9px] tracking-wide uppercase opacity-80">
+            <span>Items {lines.length}</span>
+            <span>Total qty {qtyTotal}</span>
+          </div>
+        </div>
+      )
+    ) : (
+      <div className={totalCls} style={t === 8 ? { fontFamily: def.headFont } : undefined}>
+        <span>TOTAL</span>
+        <span>Rs. {money(total)}</span>
+      </div>
+    );
+
   const Totals = (
     <div className={`mt-2 space-y-[2px] ${rule} pt-1`}>
-      <div className="flex justify-between">
-        <span>Items</span>
-        <span>{lines.length}</span>
-      </div>
-      <div className="flex justify-between">
-        <span>Total Qty</span>
-        <span>{qtyTotal}</span>
-      </div>
       <div className="flex justify-between">
         <span>Subtotal</span>
         <span>{money(subtotal)}</span>
@@ -342,12 +439,11 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
         <span>Paid by</span>
         <span>{bill.payment}</span>
       </div>
-      <div className={totalCls} style={t === 8 ? { fontFamily: def.headFont } : undefined}>
-        <span>TOTAL</span>
-        <span>Rs. {money(total)}</span>
-      </div>
+      {compact && place === "banner" ? null : null}
+      {GrandTotalBlock}
     </div>
   );
+
 
 
   const Foot = (
