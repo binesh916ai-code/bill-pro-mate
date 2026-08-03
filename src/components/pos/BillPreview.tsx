@@ -461,7 +461,6 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
       {Items}
       {InlineSummary}
 
-      {Items}
       {Totals}
       {Foot}
     </>
