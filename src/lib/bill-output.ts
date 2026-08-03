@@ -104,8 +104,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
 
   /* Option C — single sleek inline summary row */
   if (place === "inline") {
-    const inline = `ITEMS: ${lines.length}  |  TOTAL QTY: ${qtyTotal}`;
-    if (t === 7) b.align("center").line(`- ${inline} -`).align("left");
+    if (t === 7) b.align("center").line(`- ITEMS: ${lines.length}  |  TOTAL QTY: ${qtyTotal} -`).align("left");
     else b.line(row("ITEMS: " + lines.length, "TOTAL QTY: " + qtyTotal, W));
     b.line(dash);
   }
