@@ -75,9 +75,18 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
       break;
     }
 
-    case 3: // Compact Condensed — wide tracked caps
-      b.size(1, 1).line(spaced(name.toUpperCase())).size(0, 0);
+    case 3: {
+      // Compact Condensed — tall narrow caps, one centered line, never wrapped
+      const caps = name.toUpperCase();
+      const tracked = spaced(caps);
+      b.bold(true)
+        .size(0, 1) // double height only: stays condensed-narrow horizontally
+        .line((tracked.length <= W ? tracked : caps).slice(0, W))
+        .size(0, 0)
+        .bold(false);
       break;
+    }
+
     case 4: // Classic Serif — tracked caps
       b.bold(true).line(spaced(name.toUpperCase())).bold(false);
       break;
