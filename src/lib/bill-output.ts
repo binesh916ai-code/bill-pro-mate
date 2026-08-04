@@ -27,8 +27,17 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   const star = repeat("*", W);
   const dashSpaced = repeat("- ", Math.floor(W / 2));
 
+  /** center a string inside a fixed-width block of spaces (for solid invert banners) */
+  const plate = (s: string, w: number) => {
+    const txt = s.length > w ? s.slice(0, w) : s;
+    const left = Math.floor((w - txt.length) / 2);
+    return " ".repeat(left) + txt + " ".repeat(w - txt.length - left);
+  };
+
   // separator personality per template (mirrors the CSS border of each design)
   const sep = [solid, dash, solid, dashSpaced, solid, solid, dashSpaced, dashSpaced, dot, dash][t - 1]!;
+  /** crisp bold rule (used by Modern Mono instead of faded dotted lines) */
+  const rule = (ch = "-") => b.bold(true).line(repeat(ch, W)).bold(false);
 
   const b = new EscPosBuilder().init().align("center");
 
@@ -40,9 +49,21 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   b.align(t === 2 || t === 6 || t === 9 ? "left" : "center");
 
   switch (t) {
-    case 1: // Modern Mono — inverted name plate
-      b.invert(true).bold(true).line(" " + name.toUpperCase() + " ").bold(false).invert(false);
+    case 1: {
+      // Modern Mono — solid deep-black name plate (native GS B invert, double size)
+      const half = Math.floor(W / 2);
+      b.invert(true)
+        .line(plate("", W))
+        .bold(true)
+        .size(1, 1)
+        .line(plate(name.toUpperCase(), half))
+        .size(0, 0)
+        .bold(false)
+        .line(plate("", W))
+        .invert(false);
       break;
+    }
+
     case 3: // Compact Condensed — wide tracked caps
       b.size(1, 1).line(spaced(name.toUpperCase())).size(0, 0);
       break;
