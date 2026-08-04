@@ -45,10 +45,12 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   const sep = [solid, dash, solid, dashSpaced, solid, solid, dashSpaced, dashSpaced, dot, dash][t - 1]!;
   /** crisp bold rule (used by Modern Mono instead of faded dotted lines) */
   const rule = (ch = "-") => b.bold(true).line(repeat(ch, W)).bold(false);
-  /** template-aware separator (Modern Mono gets crisp bold rules) */
-  const putSep = () => (t === 1 ? rule("-") : b.line(sep));
+  /** template-aware separator (Modern Mono / Compact Condensed get crisp bold rules) */
+  const putSep = () => (t === 1 || condensed ? rule("-") : b.line(sep));
 
   const b = new EscPosBuilder().init().align("center");
+  if (condensed) b.condensed(true);
+
 
   /* ---------------- header ---------------- */
   const name = (firm?.name ?? "Your Business").trim();
