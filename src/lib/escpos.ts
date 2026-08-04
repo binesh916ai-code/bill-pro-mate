@@ -36,6 +36,18 @@ export class EscPosBuilder {
     return this.raw(GS, 0x42, on ? 1 : 0);
   }
 
+  /**
+   * Native condensed mode (Font B) — ESC ! n with bit0 set, plus ESC M 1
+   * so printers that only honour one of the two still switch fonts.
+   * Font B is ~1.33x denser: 64 cols on 80mm, 42 on 58mm.
+   */
+  condensed(on: boolean, bold = false) {
+    this.raw(ESC, 0x4d, on ? 1 : 0);
+    return this.raw(ESC, 0x21, (on ? 0x01 : 0x00) | (bold ? 0x08 : 0x00));
+  }
+
+
+
 
   text(s: string) {
     const enc = new TextEncoder().encode(s);

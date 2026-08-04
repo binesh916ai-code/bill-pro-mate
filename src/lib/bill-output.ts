@@ -15,7 +15,14 @@ const spaced = (s: string, gap = " ") => s.split("").join(gap);
  */
 export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80) {
   const t = Math.min(10, Math.max(1, Number(template) || 1));
-  const W = paperColumns(paper);
+  /** Template 3 prints in native condensed Font B (~1.33x denser columns) */
+  const condensed = t === 3;
+  const W = condensed
+    ? Number(paper) === 58
+      ? 42
+      : 64
+    : paperColumns(paper);
+
   const { firm, lines, discount, payment, customer } = bill;
   const { subtotal, total } = billTotals(lines, discount);
   const qtyTotal = lines.reduce((s, l) => s + l.qty, 0);
@@ -38,10 +45,12 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   const sep = [solid, dash, solid, dashSpaced, solid, solid, dashSpaced, dashSpaced, dot, dash][t - 1]!;
   /** crisp bold rule (used by Modern Mono instead of faded dotted lines) */
   const rule = (ch = "-") => b.bold(true).line(repeat(ch, W)).bold(false);
-  /** template-aware separator (Modern Mono gets crisp bold rules) */
-  const putSep = () => (t === 1 ? rule("-") : b.line(sep));
+  /** template-aware separator (Modern Mono / Compact Condensed get crisp bold rules) */
+  const putSep = () => (t === 1 || condensed ? rule("-") : b.line(sep));
 
   const b = new EscPosBuilder().init().align("center");
+  if (condensed) b.condensed(true);
+
 
   /* ---------------- header ---------------- */
   const name = (firm?.name ?? "Your Business").trim();
@@ -66,9 +75,18 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
       break;
     }
 
-    case 3: // Compact Condensed — wide tracked caps
-      b.size(1, 1).line(spaced(name.toUpperCase())).size(0, 0);
+    case 3: {
+      // Compact Condensed — tall narrow caps, one centered line, never wrapped
+      const caps = name.toUpperCase();
+      const tracked = spaced(caps);
+      b.bold(true)
+        .size(0, 1) // double height only: stays condensed-narrow horizontally
+        .line((tracked.length <= W ? tracked : caps).slice(0, W))
+        .size(0, 0)
+        .bold(false);
       break;
+    }
+
     case 4: // Classic Serif — tracked caps
       b.bold(true).line(spaced(name.toUpperCase())).bold(false);
       break;
@@ -261,6 +279,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
     wrap(firm.footer, W).forEach((l) =>
       b.line(t === 9 ? l.trim() : center(t === 3 || t === 4 ? l.trim().toUpperCase() : l.trim(), W)),
     );
+  if (condensed) b.condensed(false);
   b.align("left").feed(3).cut();
   return b.build();
 }
