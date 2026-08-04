@@ -38,6 +38,8 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   const sep = [solid, dash, solid, dashSpaced, solid, solid, dashSpaced, dashSpaced, dot, dash][t - 1]!;
   /** crisp bold rule (used by Modern Mono instead of faded dotted lines) */
   const rule = (ch = "-") => b.bold(true).line(repeat(ch, W)).bold(false);
+  /** template-aware separator (Modern Mono gets crisp bold rules) */
+  const putSep = () => (t === 1 ? rule("-") : b.line(sep));
 
   const b = new EscPosBuilder().init().align("center");
 
@@ -95,7 +97,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   if (t === 8) b.line(center(spaced("CASH RECEIPT"), W));
   if (t === 6) b.line(solid);
   b.align("left");
-  if (t !== 6) b.line(sep);
+  if (t !== 6) putSep();
 
   /* ---------------- meta (unique per template) ---------------- */
   if (t === 2) {
@@ -104,7 +106,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
     if (customer) b.line("Customer " + customer);
   } else if (t === 3) {
     b.line(row(bill.invoiceNo.toUpperCase(), (bill.date + " " + bill.time).toUpperCase(), W));
-    b.line(sep);
+    putSep();
   } else if (t === 6) {
     b.line(row("BILL NO", "DATE / TIME", W));
     b.bold(true).line(row(bill.invoiceNo, bill.date + " " + bill.time, W)).bold(false);
@@ -152,7 +154,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
     if (t === 3) b.align("center").line(center(`${lines.length} ITEMS   QTY ${qtyTotal}`, W)).align("left");
     else b.line(row("ITEMS  " + lines.length, "TOTAL QTY  " + qtyTotal, W));
   }
-  b.line(sep);
+  putSep();
 
   /* ---------------- items (style mirrors the preview) ---------------- */
   const compact = t === 3 || t === 8; // "2x Item .......... amount"
@@ -178,7 +180,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
       itemRow(l.name, String(l.qty), money(l.price), money(l.price * l.qty), W).forEach((r) =>
         b.line(r),
       );
-      if (t === 1 || t === 5) b.line(dot);
+      if (t === 5) b.line(dot);
     });
   }
 
@@ -190,7 +192,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
       .bold(false);
   }
 
-  b.line(sep);
+  putSep();
 
   /* Option C — single sleek inline summary row */
   if (place === "inline") {
@@ -232,7 +234,14 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
       b.line(row("Items " + lines.length, "Total qty " + qtyTotal, W));
     }
   } else if (t === 1) {
-    b.invert(true).bold(true).line(row(" TOTAL", "Rs. " + money(total) + " ", W)).bold(false).invert(false);
+    b.invert(true)
+      .line(plate("", W))
+      .bold(true)
+      .line(row(" TOTAL", "Rs. " + money(total) + " ", W))
+      .bold(false)
+      .line(plate("", W))
+      .invert(false);
+    rule("-");
   } else if (t === 6) {
     b.line(solid);
     b.bold(true).size(0, 1).line(row("TOTAL", "Rs. " + money(total), W)).size(0, 0).bold(false);
