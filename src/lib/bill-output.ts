@@ -15,7 +15,14 @@ const spaced = (s: string, gap = " ") => s.split("").join(gap);
  */
 export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80) {
   const t = Math.min(10, Math.max(1, Number(template) || 1));
-  const W = paperColumns(paper);
+  /** Template 3 prints in native condensed Font B (~1.33x denser columns) */
+  const condensed = t === 3;
+  const W = condensed
+    ? Number(paper) === 58
+      ? 42
+      : 64
+    : paperColumns(paper);
+
   const { firm, lines, discount, payment, customer } = bill;
   const { subtotal, total } = billTotals(lines, discount);
   const qtyTotal = lines.reduce((s, l) => s + l.qty, 0);
