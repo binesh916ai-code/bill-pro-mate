@@ -279,6 +279,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
     wrap(firm.footer, W).forEach((l) =>
       b.line(t === 9 ? l.trim() : center(t === 3 || t === 4 ? l.trim().toUpperCase() : l.trim(), W)),
     );
+  if (condensed) b.condensed(false);
   b.align("left").feed(3).cut();
   return b.build();
 }
