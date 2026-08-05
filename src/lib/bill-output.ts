@@ -111,7 +111,13 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   if (t !== 3 && firm?.address) wrap(firm.address, W).forEach((l) => put(l.trim()));
   if (firm?.phone) put("Ph: " + firm.phone);
   if (firm?.gstin) put("GSTIN: " + firm.gstin);
-  if (t === 4) b.line(center(spaced("* INVOICE *", ""), W));
+  if (t === 4) {
+    b.align("center")
+      .bold(true)
+      .line(center(spaced("* CASH BILL *", ""), W))
+      .bold(false)
+      .align("left");
+  }
   if (t === 8) b.line(center(spaced("CASH RECEIPT"), W));
   if (t === 6) b.line(solid);
   b.align("left");
