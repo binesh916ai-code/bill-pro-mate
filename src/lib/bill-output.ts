@@ -15,6 +15,7 @@ const spaced = (s: string, gap = " ") => s.split("").join(gap);
  */
 export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80) {
   const t = Math.min(10, Math.max(1, Number(template) || 1));
+  if (t === 5) return buildBorderedTypewriter(bill, paper);
   /** Template 3 prints in native condensed Font B (~1.33x denser columns) */
   const condensed = t === 3;
   const W = condensed
