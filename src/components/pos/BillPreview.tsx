@@ -140,7 +140,9 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
       ) : null}
       {firm?.phone ? <div>Ph: {firm.phone}</div> : null}
       {firm?.gstin ? <div>GSTIN: {firm.gstin}</div> : null}
-      {t === 4 ? <div className="mt-1 tracking-widest">* INVOICE *</div> : null}
+      {t === 4 ? (
+        <div className="mt-1 text-center font-bold tracking-widest">* CASH BILL *</div>
+      ) : null}
       {t === 8 ? (
         <div className="mt-1 text-[10px] tracking-[0.35em] uppercase">cash receipt</div>
       ) : null}
