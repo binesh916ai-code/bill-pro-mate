@@ -46,7 +46,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   /** crisp bold rule (used by Modern Mono instead of faded dotted lines) */
   const rule = (ch = "-") => b.bold(true).line(repeat(ch, W)).bold(false);
   /** template-aware separator (Modern Mono / Compact Condensed get crisp bold rules) */
-  const putSep = () => (t === 1 || condensed ? rule("-") : b.line(sep));
+  const putSep = () => (t === 1 || t === 4 || condensed ? rule("-") : b.line(sep));
 
   const b = new EscPosBuilder().init().align("center");
   if (condensed) b.condensed(true);
@@ -111,7 +111,13 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   if (t !== 3 && firm?.address) wrap(firm.address, W).forEach((l) => put(l.trim()));
   if (firm?.phone) put("Ph: " + firm.phone);
   if (firm?.gstin) put("GSTIN: " + firm.gstin);
-  if (t === 4) b.line(center(spaced("* INVOICE *", ""), W));
+  if (t === 4) {
+    b.align("center")
+      .bold(true)
+      .line(center(spaced("* CASH BILL *", ""), W))
+      .bold(false)
+      .align("left");
+  }
   if (t === 8) b.line(center(spaced("CASH RECEIPT"), W));
   if (t === 6) b.line(solid);
   b.align("left");
@@ -228,10 +234,10 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   /* Option D — summary folded into the grand-total banner */
   if (place === "banner") {
     if (t === 4) {
-      b.line(solid);
+      rule("-");
       b.line(row("ITEMS " + lines.length, "QTY " + qtyTotal, W));
       b.bold(true).line(row(spaced("TOTAL", ""), "Rs. " + money(total), W)).bold(false);
-      b.line(solid);
+      rule("-");
     } else if (t === 8) {
       b.align("center")
         .line(center(`${lines.length} ITEMS · ${qtyTotal} QTY`, W))
