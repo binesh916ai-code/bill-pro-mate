@@ -234,10 +234,10 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   /* Option D — summary folded into the grand-total banner */
   if (place === "banner") {
     if (t === 4) {
-      b.line(solid);
+      rule("-");
       b.line(row("ITEMS " + lines.length, "QTY " + qtyTotal, W));
       b.bold(true).line(row(spaced("TOTAL", ""), "Rs. " + money(total), W)).bold(false);
-      b.line(solid);
+      rule("-");
     } else if (t === 8) {
       b.align("center")
         .line(center(`${lines.length} ITEMS · ${qtyTotal} QTY`, W))
