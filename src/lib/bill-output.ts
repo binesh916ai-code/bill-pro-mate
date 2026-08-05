@@ -344,9 +344,9 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
     b.bold(true).size(0, 1).line(row("TOTAL", "Rs. " + money(total), W)).size(0, 0).bold(false);
     b.line(solid);
   } else if (t === 5 || t === 9) {
-    b.line(dash);
+    rule("-");
     b.bold(true).size(0, 1).line(row("TOTAL", "Rs. " + money(total), W)).size(0, 0).bold(false);
-    b.line(dash);
+    rule("-");
   } else {
     b.bold(true).line(row("TOTAL", "Rs. " + money(total), W)).bold(false);
   }
