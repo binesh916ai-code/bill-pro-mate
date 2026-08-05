@@ -7,6 +7,78 @@ import { paperColumns, type PaperSize } from "@/lib/pos-store";
 
 /** letter-spaced text, e.g. "SHOP" -> "S H O P" (used by poster/ticket templates) */
 const spaced = (s: string, gap = " ") => s.split("").join(gap);
+/**
+ * Template 5 — Bordered Typewriter.
+ * Prints a full outer box frame (+---+ / | ... |) in native condensed Font B,
+ * with hardware bold on the store name, table headers and grand total.
+ */
+function buildBorderedTypewriter(bill: BillData, paper: PaperSize) {
+  const W = Number(paper) === 58 ? 42 : 64; // Font B columns
+  const IW = W - 4; // inner content width inside "| " ... " |"
+
+  const { firm, lines, discount, payment, customer } = bill;
+  const { subtotal, total } = billTotals(lines, discount);
+  const qtyTotal = lines.reduce((s, l) => s + l.qty, 0);
+
+  const b = new EscPosBuilder().init().align("left");
+  b.condensed(true);
+
+  const edge = () => b.bold(true).line("+" + repeat("-", W - 2) + "+").bold(false);
+  const inner = (ch = "-") => b.bold(true).line("| " + repeat(ch, IW) + " |").bold(false);
+  const boxed = (s: string, bold = false) => {
+    b.bold(bold);
+    b.line("| " + (s.length > IW ? s.slice(0, IW) : s.padEnd(IW)) + " |");
+    b.bold(false);
+    return b;
+  };
+  const boxedCenter = (s: string, bold = false) => boxed(center(s, IW).padEnd(IW), bold);
+  const boxedRow = (l: string, r: string, bold = false) => boxed(row(l, r, IW), bold);
+
+  edge();
+  boxed("");
+  boxedCenter((firm?.name ?? "Your Business").toUpperCase(), true);
+  if (firm?.address) wrap(firm.address, IW).forEach((l) => boxedCenter(l.trim()));
+  if (firm?.phone) boxedCenter("Ph: " + firm.phone);
+  if (firm?.gstin) boxedCenter("GSTIN: " + firm.gstin);
+  boxed("");
+  inner();
+
+  boxedRow("No: " + bill.invoiceNo, bill.date);
+  boxedRow(customer ? "Cust: " + customer : "", bill.time);
+  inner();
+
+  boxed(itemHeader(IW), true);
+  inner();
+  lines.forEach((l) => {
+    itemRow(l.name, String(l.qty), money(l.price), money(l.price * l.qty), IW).forEach((r) =>
+      boxed(r),
+    );
+  });
+  inner();
+
+  // Option A — total qty aligned under the QTY column
+  boxed(itemRow(`${lines.length} ITEM${lines.length === 1 ? "" : "S"}`, String(qtyTotal), "", "", IW)[0]!, true);
+  inner();
+
+  boxedRow("Subtotal", money(subtotal));
+  if (discount > 0) boxedRow("Discount", "-" + money(discount));
+  boxedRow("Paid by", payment);
+  inner();
+  boxedRow("GRAND TOTAL", "Rs. " + money(total), true);
+  inner();
+
+  if (firm?.footer) {
+    boxed("");
+    wrap(firm.footer, IW).forEach((l) => boxedCenter(l.trim()));
+  }
+  boxed("");
+  edge();
+
+  b.condensed(false);
+  b.align("left").feed(3).cut();
+  return b.build();
+}
+
 
 /**
  * Build ESC/POS bytes so the physical print mirrors the on-screen template.
