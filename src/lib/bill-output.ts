@@ -46,7 +46,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   /** crisp bold rule (used by Modern Mono instead of faded dotted lines) */
   const rule = (ch = "-") => b.bold(true).line(repeat(ch, W)).bold(false);
   /** template-aware separator (Modern Mono / Compact Condensed get crisp bold rules) */
-  const putSep = () => (t === 1 || condensed ? rule("-") : b.line(sep));
+  const putSep = () => (t === 1 || t === 4 || condensed ? rule("-") : b.line(sep));
 
   const b = new EscPosBuilder().init().align("center");
   if (condensed) b.condensed(true);
