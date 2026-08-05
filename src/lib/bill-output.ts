@@ -283,7 +283,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
 
   /* Option A — total qty padded directly under the QTY column */
   if (place === "column") {
-    b.line(t === 9 ? dot : dash);
+    rule("-");
     b.bold(true)
       .line(itemRow(`${lines.length} ITEM${lines.length === 1 ? "" : "S"}`, String(qtyTotal), "", "", W)[0]!)
       .bold(false);
