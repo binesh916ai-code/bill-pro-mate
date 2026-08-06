@@ -437,10 +437,12 @@ function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
           <span>-{money(discount)}</span>
         </div>
       )}
-      <div className="flex justify-between">
-        <span>Paid by</span>
-        <span>{bill.payment}</span>
-      </div>
+      {firm?.showPaymentMethod !== false && (
+        <div className="flex justify-between">
+          <span>Paid by</span>
+          <span>{bill.payment}</span>
+        </div>
+      )}
       {GrandTotalBlock}
     </div>
   );
