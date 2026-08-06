@@ -67,7 +67,7 @@ const clampA4 = (n: number | undefined) => Math.min(5, Math.max(1, Number(n) || 
 const clampThermal = (n: number | undefined) => Math.min(10, Math.max(1, Number(n) || 1));
 
 export function BillPreview({
-  bill,
+  bill: rawBill,
   mode,
   template = 1,
   paper,
@@ -78,7 +78,9 @@ export function BillPreview({
   /** thermal roll width in mm — 58 or 80 */
   paper?: 58 | 80;
 }) {
+  const bill = withDisplayDate(rawBill);
   if (mode === "thermal") {
+
     const t = clampThermal(template);
     const def = THERMAL_TEMPLATES[t - 1];
     const narrow = Number(paper ?? bill.firm?.paperSize ?? 80) === 58;
