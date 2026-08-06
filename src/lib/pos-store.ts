@@ -21,6 +21,8 @@ export type Firm = {
   thermalTemplate?: number;
   /** Thermal roll width: 58mm (32 cols) or 80mm (48 cols) */
   paperSize?: PaperSize;
+  /** Show the "Paid by" payment method line on receipts (default: true) */
+  showPaymentMethod?: boolean;
 };
 
 export type Item = {

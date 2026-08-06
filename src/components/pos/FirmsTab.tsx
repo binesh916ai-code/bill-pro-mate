@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   A4_TEMPLATES,
@@ -46,6 +47,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
   const [thermalTemplate, setThermalTemplate] = useState(1);
   const [previewMode, setPreviewMode] = useState<"a4" | "thermal">("thermal");
   const [paperSize, setPaperSize] = useState<PaperSize>(80);
+  const [showPaymentMethod, setShowPaymentMethod] = useState(true);
 
   const set = (k: keyof typeof blank, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -72,6 +74,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       a4Template,
       thermalTemplate,
       paperSize,
+      showPaymentMethod,
     },
     invoiceNo: `${form.invoicePrefix}${String(Number(form.nextInvoiceNo) || 1).padStart(4, "0")}`,
     date: new Date().toISOString().slice(0, 10),
@@ -98,6 +101,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
       a4Template,
       thermalTemplate,
       paperSize,
+      showPaymentMethod,
     };
     if (editingId) {
       update((d) => ({
@@ -115,6 +119,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
     setA4Template(1);
     setThermalTemplate(1);
     setPaperSize(80);
+    setShowPaymentMethod(true);
     setEditingId(null);
 
   }
@@ -186,6 +191,16 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
           </div>
         </div>
 
+
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+          <div className="min-w-0">
+            <Label className="text-sm font-medium">Show Payment Method on Receipts</Label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Prints the "Paid by: Cash / UPI" line on bills and previews.
+            </p>
+          </div>
+          <Switch checked={showPaymentMethod} onCheckedChange={setShowPaymentMethod} />
+        </div>
 
         <div className="space-y-3 rounded-xl border border-border p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -327,6 +342,7 @@ export function FirmsTab({ firms, activeFirmId, update, uid }: Props) {
                     setA4Template(f.a4Template ?? 1);
                     setThermalTemplate(f.thermalTemplate ?? 1);
                     setPaperSize(Number(f.paperSize) === 58 ? 58 : 80);
+                    setShowPaymentMethod(f.showPaymentMethod !== false);
 
                   }}
                 >
