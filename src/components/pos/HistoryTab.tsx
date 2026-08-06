@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { billTotals, money, type BillData } from "./BillPreview";
+import { billTotals, fmtDate, money, type BillData } from "./BillPreview";
 import { BillDialog } from "./BillDialog";
 import type { Firm, PosData, SavedBill } from "@/lib/pos-store";
 
