@@ -11,6 +11,18 @@ export type BillData = {
   customer: string;
 };
 
+/** Render any stored date (ISO `YYYY-MM-DD` or already-formatted) as `DD-MM-YYYY`. */
+export const fmtDate = (d: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d ?? "").trim());
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : String(d ?? "");
+};
+
+/** Bill with its date normalised to DD-MM-YYYY for display/printing. */
+export const withDisplayDate = <T extends { date: string }>(bill: T): T => ({
+  ...bill,
+  date: fmtDate(bill.date),
+});
+
 export const money = (n: number) =>
   n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
