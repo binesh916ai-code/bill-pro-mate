@@ -62,7 +62,7 @@ function buildBorderedTypewriter(bill: BillData, paper: PaperSize) {
 
   boxedRow("Subtotal", money(subtotal));
   if (discount > 0) boxedRow("Discount", "-" + money(discount));
-  boxedRow("Paid by", payment);
+  if (firm?.showPaymentMethod !== false) boxedRow("Paid by", payment);
   inner();
   boxedRow("GRAND TOTAL", "Rs. " + money(total), true);
   inner();
@@ -302,7 +302,7 @@ export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80
   /* ---------------- totals block ---------------- */
   b.line(row("Subtotal", money(subtotal), W));
   if (discount > 0) b.line(row("Discount", "-" + money(discount), W));
-  b.line(row("Paid by", payment, W));
+  if (firm?.showPaymentMethod !== false) b.line(row("Paid by", payment, W));
 
   /* Option D — summary folded into the grand-total banner */
   if (place === "banner") {
