@@ -82,14 +82,91 @@ function buildBorderedTypewriter(rawBill: BillData, paper: PaperSize) {
 
 
 /**
+ * Template 11 — Badge & Tall Receipt.
+ * Big inverted (GS B 1) store-name badge block, airy line spacing and a solid
+ * black grand-total plate so short bills still print tall and premium.
+ */
+function buildTallBadge(rawBill: BillData, paper: PaperSize) {
+  const bill = withDisplayDate(rawBill);
+  const W = paperColumns(paper);
+  const { firm, lines, discount, payment, customer } = bill;
+  const { subtotal, total } = billTotals(lines, discount);
+  const qtyTotal = lines.reduce((s, l) => s + l.qty, 0);
+
+  const b = new EscPosBuilder().init();
+  const plate = (s: string, w: number) => {
+    const txt = s.length > w ? s.slice(0, w) : s;
+    const left = Math.floor((w - txt.length) / 2);
+    return " ".repeat(left) + txt + " ".repeat(w - txt.length - left);
+  };
+  const half = Math.floor(W / 2);
+  const rule = (ch = "-") => b.bold(true).line(repeat(ch, W)).bold(false);
+
+  /* ---- big square badge: solid black block, double-size store name ---- */
+  b.align("center").invert(true);
+  b.line(plate("", W)).line(plate("", W));
+  b.bold(true).size(1, 1);
+  wrap((firm?.name ?? "Your Business").toUpperCase(), half - 2).forEach((l) =>
+    b.line(plate(l.trim(), half)),
+  );
+  b.size(0, 0).bold(false);
+  b.line(plate("", W)).line(plate("", W)).invert(false);
+  b.feed(1);
+
+  if (firm?.address) wrap(firm.address, W).forEach((l) => b.line(center(l.trim(), W)));
+  if (firm?.phone) b.line(center("Ph: " + firm.phone, W));
+  b.feed(1);
+
+  b.align("left");
+  rule("-");
+  b.line(row("BILL NO", bill.invoiceNo, W));
+  b.line(row("DATE", bill.date, W));
+  b.line(row("TIME", bill.time, W));
+  if (customer) b.line(row("CUSTOMER", customer, W));
+  rule("-");
+  b.feed(1);
+
+  b.bold(true).line(itemHeader(W)).bold(false);
+  rule("-");
+  lines.forEach((l) => {
+    itemRow(l.name, String(l.qty), money(l.price), money(l.price * l.qty), W).forEach((r) =>
+      b.line(r),
+    );
+    b.line("");
+  });
+  rule("-");
+  b.bold(true)
+    .line(itemRow(`${lines.length} ITEM${lines.length === 1 ? "" : "S"}`, String(qtyTotal), "", "", W)[0]!)
+    .bold(false);
+  b.feed(1);
+
+  b.line(row("Subtotal", money(subtotal), W));
+  if (discount > 0) b.line(row("Discount", "-" + money(discount), W));
+  if (firm?.showPaymentMethod !== false) b.line(row("Paid by", payment, W));
+  b.feed(1);
+
+  b.align("center").invert(true);
+  b.line(plate("", W));
+  b.bold(true).line(plate("GRAND TOTAL", W));
+  b.size(1, 1).line(plate("Rs. " + money(total), half)).size(0, 0).bold(false);
+  b.line(plate("", W)).invert(false);
+  b.feed(2);
+
+  if (firm?.footer) wrap(firm.footer, W).forEach((l) => b.line(center(l.trim().toUpperCase(), W)));
+  b.align("left").feed(4).cut();
+  return b.build();
+}
+
+/**
  * Build ESC/POS bytes so the physical print mirrors the on-screen template.
- * Each of the 10 thermal templates has its own header, separators, meta block,
+ * Each of the thermal templates has its own header, separators, meta block,
  * item table style, qty-summary placement and grand-total treatment.
  */
 export function buildReceipt(rawBill: BillData, template = 1, paper: PaperSize = 80) {
   const bill = withDisplayDate(rawBill);
-  const t = Math.min(10, Math.max(1, Number(template) || 1));
+  const t = Math.min(11, Math.max(1, Number(template) || 1));
   if (t === 5) return buildBorderedTypewriter(rawBill, paper);
+  if (t === 11) return buildTallBadge(rawBill, paper);
   /** Template 3 prints in native condensed Font B (~1.33x denser columns) */
   const condensed = t === 3;
   const W = condensed
