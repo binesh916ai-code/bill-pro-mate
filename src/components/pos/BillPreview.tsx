@@ -53,6 +53,7 @@ export const THERMAL_TEMPLATES: ThermalDef[] = [
   { id: 8, name: "Ticket Stub", font: '"Barlow", sans-serif', headFont: '"Bebas Neue", sans-serif', align: "center" },
   { id: 9, name: "Retro Space", font: '"Space Mono", monospace', headFont: '"Space Mono", monospace', align: "left" },
   { id: 10, name: "Grid Grotesk", font: '"Space Grotesk", sans-serif', headFont: '"Space Grotesk", sans-serif', align: "center" },
+  { id: 11, name: "Badge & Tall Receipt", font: '"Barlow", sans-serif', headFont: '"Archivo Black", sans-serif', align: "center" },
 ];
 
 export const A4_TEMPLATES = [
@@ -64,7 +65,7 @@ export const A4_TEMPLATES = [
 ] as const;
 
 const clampA4 = (n: number | undefined) => Math.min(5, Math.max(1, Number(n) || 1));
-const clampThermal = (n: number | undefined) => Math.min(10, Math.max(1, Number(n) || 1));
+const clampThermal = (n: number | undefined) => Math.min(11, Math.max(1, Number(n) || 1));
 
 export function BillPreview({
   bill: rawBill,
@@ -117,8 +118,113 @@ function Logo({ src, size = 44 }: { src?: string; size?: number }) {
 
 /* ------------------------------- THERMAL ------------------------------- */
 
+/**
+ * Template 11 — Badge & Tall Receipt.
+ * Big inverted square badge with the active store name, airy vertical rhythm
+ * so even a single-item bill prints as a tall, premium receipt.
+ */
+function TallBadge({ bill, def }: { bill: BillData; def: ThermalDef }) {
+  const { firm, lines, discount, customer } = bill;
+  const { subtotal, total } = billTotals(lines, discount);
+  const qtyTotal = lines.reduce((s, l) => s + l.qty, 0);
+
+  return (
+    <div className="leading-relaxed">
+      <Logo src={firm?.logo} size={44} />
+      <div className="mx-auto flex aspect-square w-[78%] items-center justify-center bg-black p-2 text-center">
+        <div
+          className="text-[17px] leading-[1.15] tracking-[0.06em] break-words uppercase text-white"
+          style={{ fontFamily: def.headFont }}
+        >
+          {firm?.name || "Your Business"}
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-[3px] text-center">
+        {firm?.address ? <div className="whitespace-pre-line">{firm.address}</div> : null}
+        {firm?.phone ? <div>Ph: {firm.phone}</div> : null}
+      </div>
+
+      <div className="mt-4 space-y-[4px] border-y border-black py-2">
+        <div className="flex justify-between">
+          <span className="tracking-[0.15em] uppercase">Bill No</span>
+          <span className="font-semibold">{bill.invoiceNo}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="tracking-[0.15em] uppercase">Date</span>
+          <span>{bill.date}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="tracking-[0.15em] uppercase">Time</span>
+          <span>{bill.time}</span>
+        </div>
+        {customer ? (
+          <div className="flex justify-between">
+            <span className="tracking-[0.15em] uppercase">Customer</span>
+            <span>{customer}</span>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-5">
+        <div className="flex border-b border-black pb-[3px] text-[10px] font-bold tracking-[0.12em] uppercase">
+          <span className="flex-1">Item</span>
+          <span className="w-8 text-right">Qty</span>
+          <span className="w-14 text-right">Rate</span>
+          <span className="w-16 text-right">Amt</span>
+        </div>
+        {lines.map((l) => (
+          <div key={l.itemId} className="flex py-[6px]">
+            <span className="flex-1 pr-1">{l.name}</span>
+            <span className="w-8 text-right">{l.qty}</span>
+            <span className="w-14 text-right">{money(l.price)}</span>
+            <span className="w-16 text-right">{money(l.price * l.qty)}</span>
+          </div>
+        ))}
+        <div className="flex border-t border-black pt-[6px] font-semibold">
+          <span className="flex-1 pr-1 text-[10px] tracking-[0.12em] uppercase">
+            {lines.length} item{lines.length === 1 ? "" : "s"}
+          </span>
+          <span className="w-8 text-right">{qtyTotal}</span>
+          <span className="w-14" />
+          <span className="w-16" />
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-[6px]">
+        <div className="flex justify-between">
+          <span>Subtotal</span>
+          <span>{money(subtotal)}</span>
+        </div>
+        {discount > 0 && (
+          <div className="flex justify-between">
+            <span>Discount</span>
+            <span>-{money(discount)}</span>
+          </div>
+        )}
+        {firm?.showPaymentMethod !== false && (
+          <div className="flex justify-between">
+            <span>Paid by</span>
+            <span>{bill.payment}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-5 bg-black px-2 py-3 text-center text-white">
+        <div className="text-[10px] tracking-[0.3em] uppercase">Grand Total</div>
+        <div className="mt-1 text-[22px] leading-none" style={{ fontFamily: def.headFont }}>
+          Rs. {money(total)}
+        </div>
+      </div>
+
+      <div className="mt-6 mb-4 text-center tracking-[0.1em] uppercase">{firm?.footer}</div>
+    </div>
+  );
+}
+
 function Thermal({ bill, def }: { bill: BillData; def: ThermalDef }) {
   const t = def.id;
+  if (t === 11) return <TallBadge bill={bill} def={def} />;
   const { firm, lines, discount, customer } = bill;
   const { subtotal, total } = billTotals(lines, discount);
   const qtyTotal = lines.reduce((s, l) => s + l.qty, 0);
