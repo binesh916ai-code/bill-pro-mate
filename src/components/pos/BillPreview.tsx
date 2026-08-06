@@ -65,7 +65,7 @@ export const A4_TEMPLATES = [
 ] as const;
 
 const clampA4 = (n: number | undefined) => Math.min(5, Math.max(1, Number(n) || 1));
-const clampThermal = (n: number | undefined) => Math.min(10, Math.max(1, Number(n) || 1));
+const clampThermal = (n: number | undefined) => Math.min(11, Math.max(1, Number(n) || 1));
 
 export function BillPreview({
   bill: rawBill,
