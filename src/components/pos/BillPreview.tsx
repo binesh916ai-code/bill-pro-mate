@@ -53,6 +53,7 @@ export const THERMAL_TEMPLATES: ThermalDef[] = [
   { id: 8, name: "Ticket Stub", font: '"Barlow", sans-serif', headFont: '"Bebas Neue", sans-serif', align: "center" },
   { id: 9, name: "Retro Space", font: '"Space Mono", monospace', headFont: '"Space Mono", monospace', align: "left" },
   { id: 10, name: "Grid Grotesk", font: '"Space Grotesk", sans-serif', headFont: '"Space Grotesk", sans-serif', align: "center" },
+  { id: 11, name: "Badge & Tall Receipt", font: '"Barlow", sans-serif', headFont: '"Archivo Black", sans-serif', align: "center" },
 ];
 
 export const A4_TEMPLATES = [
