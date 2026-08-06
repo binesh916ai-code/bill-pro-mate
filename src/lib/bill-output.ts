@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
 
 import { EscPosBuilder, center, itemHeader, itemRow, printBytes, repeat, row, wrap } from "@/lib/escpos";
-import { billTotals, money, type BillData } from "@/components/pos/BillPreview";
+import { billTotals, money, withDisplayDate, type BillData } from "@/components/pos/BillPreview";
 import { paperColumns, type PaperSize } from "@/lib/pos-store";
 
 /** letter-spaced text, e.g. "SHOP" -> "S H O P" (used by poster/ticket templates) */
@@ -12,7 +12,8 @@ const spaced = (s: string, gap = " ") => s.split("").join(gap);
  * Prints a full outer box frame (+---+ / | ... |) in native condensed Font B,
  * with hardware bold on the store name, table headers and grand total.
  */
-function buildBorderedTypewriter(bill: BillData, paper: PaperSize) {
+function buildBorderedTypewriter(rawBill: BillData, paper: PaperSize) {
+  const bill = withDisplayDate(rawBill);
   const W = Number(paper) === 58 ? 42 : 64; // Font B columns
   const IW = W - 4; // inner content width inside "| " ... " |"
 
@@ -85,9 +86,10 @@ function buildBorderedTypewriter(bill: BillData, paper: PaperSize) {
  * Each of the 10 thermal templates has its own header, separators, meta block,
  * item table style, qty-summary placement and grand-total treatment.
  */
-export function buildReceipt(bill: BillData, template = 1, paper: PaperSize = 80) {
+export function buildReceipt(rawBill: BillData, template = 1, paper: PaperSize = 80) {
+  const bill = withDisplayDate(rawBill);
   const t = Math.min(10, Math.max(1, Number(template) || 1));
-  if (t === 5) return buildBorderedTypewriter(bill, paper);
+  if (t === 5) return buildBorderedTypewriter(rawBill, paper);
   /** Template 3 prints in native condensed Font B (~1.33x denser columns) */
   const condensed = t === 3;
   const W = condensed

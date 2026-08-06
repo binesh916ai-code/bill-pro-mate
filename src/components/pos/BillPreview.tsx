@@ -11,6 +11,18 @@ export type BillData = {
   customer: string;
 };
 
+/** Render any stored date (ISO `YYYY-MM-DD` or already-formatted) as `DD-MM-YYYY`. */
+export const fmtDate = (d: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d ?? "").trim());
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : String(d ?? "");
+};
+
+/** Bill with its date normalised to DD-MM-YYYY for display/printing. */
+export const withDisplayDate = <T extends { date: string }>(bill: T): T => ({
+  ...bill,
+  date: fmtDate(bill.date),
+});
+
 export const money = (n: number) =>
   n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -55,7 +67,7 @@ const clampA4 = (n: number | undefined) => Math.min(5, Math.max(1, Number(n) || 
 const clampThermal = (n: number | undefined) => Math.min(10, Math.max(1, Number(n) || 1));
 
 export function BillPreview({
-  bill,
+  bill: rawBill,
   mode,
   template = 1,
   paper,
@@ -66,7 +78,9 @@ export function BillPreview({
   /** thermal roll width in mm — 58 or 80 */
   paper?: 58 | 80;
 }) {
+  const bill = withDisplayDate(rawBill);
   if (mode === "thermal") {
+
     const t = clampThermal(template);
     const def = THERMAL_TEMPLATES[t - 1];
     const narrow = Number(paper ?? bill.firm?.paperSize ?? 80) === 58;

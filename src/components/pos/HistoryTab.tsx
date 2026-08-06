@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { billTotals, money, type BillData } from "./BillPreview";
+import { billTotals, fmtDate, money, type BillData } from "./BillPreview";
 import { BillDialog } from "./BillDialog";
 import type { Firm, PosData, SavedBill } from "@/lib/pos-store";
 
@@ -127,7 +127,7 @@ export function HistoryTab({ bills, firms, update }: Props) {
                 <div className="min-w-0">
                   <p className="truncate font-mono font-medium">{b.invoiceNo}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {b.firmName} · {b.date} {b.time} · {b.payment} · {b.lines.length} items
+                    {b.firmName} · {fmtDate(b.date)} {b.time} · {b.payment} · {b.lines.length} items
                   </p>
                 </div>
                 <span className="shrink-0 font-mono font-semibold">₹{money(b.total)}</span>
@@ -204,7 +204,7 @@ export function HistoryTab({ bills, firms, update }: Props) {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <Info label="Store" value={view.firmName} />
                   <Info label="Payment" value={view.payment} />
-                  <Info label="Date" value={view.date} />
+                  <Info label="Date" value={fmtDate(view.date)} />
                   <Info label="Time" value={view.time} />
                   <Info label="Customer" value={view.customer || "Walk-in"} />
                   <Info label="Items" value={String(view.lines.length)} />
