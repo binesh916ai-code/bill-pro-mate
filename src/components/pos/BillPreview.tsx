@@ -661,10 +661,12 @@ function A4({ bill, t }: { bill: BillData; t: number }) {
         <span>TOTAL</span>
         <span>Rs. {money(total)}</span>
       </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-black/60">Paid by</span>
-        <span>{bill.payment}</span>
-      </div>
+      {firm?.showPaymentMethod !== false && (
+        <div className="flex justify-between text-xs">
+          <span className="text-black/60">Paid by</span>
+          <span>{bill.payment}</span>
+        </div>
+      )}
     </div>
   );
 
