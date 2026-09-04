@@ -37,8 +37,26 @@ function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up" | "reset">("in");
   const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  async function sendReset() {
+    if (!email.trim()) return toast.error("Enter your email first.");
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setResetSent(true);
+      toast.success("Password link sent. Check your inbox.");
+    } catch (e) {
+      toast.error((e as Error).message || "Could not send the link.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -125,27 +143,53 @@ function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              onKeyDown={(e) => e.key === "Enter" && mode === "reset" && void sendReset()}
             />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Password</Label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "up" ? "new-password" : "current-password"}
-              onKeyDown={(e) => e.key === "Enter" && void withEmail()}
-            />
-          </div>
-          <Button variant="outline" className="w-full" disabled={busy} onClick={() => void withEmail()}>
-            {mode === "up" ? "Create account" : "Sign in"}
-          </Button>
-          <button
-            className="w-full text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
-            onClick={() => setMode(mode === "up" ? "in" : "up")}
-          >
-            {mode === "up" ? "Already have an account? Sign in" : "New here? Create an account"}
-          </button>
+          {mode === "reset" ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Signed up with Google? Enter the same email — we'll send a link to set a password so you
+                can sign in here without a browser.
+              </p>
+              <Button className="w-full" disabled={busy} onClick={() => void sendReset()}>
+                {resetSent ? "Resend link" : "Send password link"}
+              </Button>
+              <button
+                className="w-full text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
+                onClick={() => setMode("in")}
+              >
+                Back to sign in
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Password</Label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === "up" ? "new-password" : "current-password"}
+                  onKeyDown={(e) => e.key === "Enter" && void withEmail()}
+                />
+              </div>
+              <Button variant="outline" className="w-full" disabled={busy} onClick={() => void withEmail()}>
+                {mode === "up" ? "Create account" : "Sign in"}
+              </Button>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <button
+                  className="underline-offset-2 hover:underline"
+                  onClick={() => setMode(mode === "up" ? "in" : "up")}
+                >
+                  {mode === "up" ? "Have an account? Sign in" : "Create an account"}
+                </button>
+                <button className="underline-offset-2 hover:underline" onClick={() => setMode("reset")}>
+                  Forgot / Set password
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </Card>
     </div>
