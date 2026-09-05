@@ -31,3 +31,7 @@ Temporarily change `server.url` in `capacitor.config.ts` to your machine's IP
 ## PWA
 The web app is also installable from Chrome/Safari ("Add to Home Screen") via
 `public/manifest.webmanifest` — it opens full-screen with a teal splash screen.
+
+## Printing inside the APK
+- **Print** (left button) sends the ESC/POS receipt to the [RawBT](https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter) app via the `rawbt:` scheme — install RawBT and pair your printer there once. For A4 mode it saves a PDF you can print from any app.
+- **Thermal Print** (right button) uses native Bluetooth LE (`@capacitor-community/bluetooth-le`). Run `npx cap sync android` after pulling so the plugin and permissions are picked up.
