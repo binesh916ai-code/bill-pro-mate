@@ -1,5 +1,7 @@
 /* Minimal ESC/POS builder + Web Bluetooth transport for 80mm thermal printers */
 
+import { Capacitor } from "@capacitor/core";
+
 const ESC = 0x1b;
 const GS = 0x1d;
 
@@ -333,8 +335,8 @@ export function forgetPrinter() {
 export function printerStatus(): PrinterStatus {
   const saved = savedPrinter();
   return {
-    connected: !!conn,
-    name: conn?.device.name ?? null,
+    connected: !!conn || !!nativeConn,
+    name: conn?.device.name ?? nativeConn?.name ?? null,
     savedName: saved?.name ?? null,
     connecting,
   };
@@ -352,11 +354,12 @@ export function subscribePrinter(cb: (s: PrinterStatus) => void) {
 }
 
 export function isBluetoothSupported() {
-  return typeof navigator !== "undefined" && !!getBluetooth();
+  if (typeof navigator === "undefined") return false;
+  return isNativeApp() || !!getBluetooth();
 }
 
 export function connectedPrinterName() {
-  return conn?.device.name ?? null;
+  return conn?.device.name ?? nativeConn?.name ?? null;
 }
 
 async function attach(device: BluetoothDevice): Promise<string> {
@@ -387,6 +390,7 @@ async function attach(device: BluetoothDevice): Promise<string> {
 
 /** Full scanner dialog — used by "Change printer". */
 export async function connectPrinter(): Promise<string> {
+  if (isNativeApp()) return nativeConnect();
   if (!isBluetoothSupported()) throw new Error("Web Bluetooth is not supported in this browser.");
   connecting = true;
   emit();
@@ -404,6 +408,7 @@ export async function connectPrinter(): Promise<string> {
 
 /** Silent reconnect to the previously paired printer. Returns name or null. */
 export async function autoReconnect(): Promise<string | null> {
+  if (isNativeApp()) return nativeConn ? nativeConn.name : nativeAutoReconnect();
   if (conn) return conn.device.name ?? "Thermal printer";
   const bt = getBluetooth();
   const saved = savedPrinter();
@@ -425,6 +430,7 @@ export async function autoReconnect(): Promise<string | null> {
 
 /** Reconnect if possible, otherwise open the scanner. */
 export async function ensurePrinter(): Promise<string> {
+  if (nativeConn) return nativeConn.name;
   if (conn) return conn.device.name ?? "Thermal printer";
   const auto = await autoReconnect();
   if (auto) return auto;
@@ -434,10 +440,24 @@ export async function ensurePrinter(): Promise<string> {
 export function disconnectPrinter() {
   conn?.device.gatt?.disconnect();
   conn = null;
+  if (nativeConn) {
+    const id = nativeConn.deviceId;
+    nativeConn = null;
+    void ble().then((c) => c.disconnect(id)).catch(() => {});
+  }
   emit();
 }
 
+/** Base64 of raw ESC/POS bytes (used for the RawBT intent scheme). */
+export function bytesToBase64(data: Uint8Array) {
+  let bin = "";
+  for (let i = 0; i < data.length; i += 0x8000)
+    bin += String.fromCharCode(...Array.from(data.subarray(i, i + 0x8000)));
+  return btoa(bin);
+}
+
 export async function printBytes(data: Uint8Array) {
+  if (nativeConn) return nativePrint(data);
   if (!conn) throw new Error("No printer connected.");
   const chunk = 180;
   for (let i = 0; i < data.length; i += chunk) {
