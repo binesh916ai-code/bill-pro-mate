@@ -1,5 +1,7 @@
 /* Minimal ESC/POS builder + Web Bluetooth transport for 80mm thermal printers */
 
+import { Capacitor } from "@capacitor/core";
+
 const ESC = 0x1b;
 const GS = 0x1d;
 
@@ -178,6 +180,104 @@ function getBluetooth(): BluetoothApi | undefined {
   return (navigator as unknown as { bluetooth?: BluetoothApi }).bluetooth;
 }
 
+/* ---------- native (Capacitor Android) transport ---------- */
+
+export function isNativeApp() {
+  return Capacitor.isNativePlatform();
+}
+
+type NativeConn = { deviceId: string; name: string; service: string; characteristic: string; withoutResponse: boolean };
+let nativeConn: NativeConn | null = null;
+let bleReady = false;
+
+async function ble() {
+  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  if (!bleReady) {
+    await BleClient.initialize({ androidNeverForLocation: true });
+    bleReady = true;
+  }
+  return BleClient;
+}
+
+async function nativeAttach(deviceId: string, name: string): Promise<string> {
+  const BleClient = await ble();
+  await BleClient.connect(deviceId, () => {
+    nativeConn = null;
+    emit();
+  });
+  const services = await BleClient.getServices(deviceId);
+  let found: NativeConn | null = null;
+  for (const s of services) {
+    const c = s.characteristics.find((ch) => ch.properties.write || ch.properties.writeWithoutResponse);
+    if (c) {
+      found = {
+        deviceId,
+        name,
+        service: s.uuid,
+        characteristic: c.uuid,
+        withoutResponse: !!c.properties.writeWithoutResponse,
+      };
+      break;
+    }
+  }
+  if (!found) {
+    await BleClient.disconnect(deviceId).catch(() => {});
+    throw new Error("No writable characteristic found on this printer.");
+  }
+  nativeConn = found;
+  try {
+    window.localStorage.setItem(PAIR_KEY, JSON.stringify({ id: deviceId, name }));
+  } catch {
+    /* ignore */
+  }
+  emit();
+  return name;
+}
+
+async function nativeConnect(): Promise<string> {
+  const BleClient = await ble();
+  connecting = true;
+  emit();
+  try {
+    const device = await BleClient.requestDevice({ optionalServices: SERVICES });
+    return await nativeAttach(device.deviceId, device.name || "Thermal printer");
+  } finally {
+    connecting = false;
+    emit();
+  }
+}
+
+async function nativeAutoReconnect(): Promise<string | null> {
+  const saved = savedPrinter();
+  if (!saved?.id) return null;
+  connecting = true;
+  emit();
+  try {
+    return await nativeAttach(saved.id, saved.name);
+  } catch {
+    return null;
+  } finally {
+    connecting = false;
+    emit();
+  }
+}
+
+async function nativePrint(data: Uint8Array) {
+  if (!nativeConn) throw new Error("No printer connected.");
+  const BleClient = await ble();
+  const chunk = 180;
+  for (let i = 0; i < data.length; i += chunk) {
+    const slice = data.slice(i, i + chunk);
+    const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength);
+    if (nativeConn.withoutResponse) {
+      await BleClient.writeWithoutResponse(nativeConn.deviceId, nativeConn.service, nativeConn.characteristic, view);
+    } else {
+      await BleClient.write(nativeConn.deviceId, nativeConn.service, nativeConn.characteristic, view);
+    }
+    await new Promise((r) => setTimeout(r, 25));
+  }
+}
+
 const SERVICES = [
   "000018f0-0000-1000-8000-00805f9b34fb",
   "0000ffe0-0000-1000-8000-00805f9b34fb",
@@ -235,8 +335,8 @@ export function forgetPrinter() {
 export function printerStatus(): PrinterStatus {
   const saved = savedPrinter();
   return {
-    connected: !!conn,
-    name: conn?.device.name ?? null,
+    connected: !!conn || !!nativeConn,
+    name: conn?.device.name ?? nativeConn?.name ?? null,
     savedName: saved?.name ?? null,
     connecting,
   };
@@ -254,11 +354,12 @@ export function subscribePrinter(cb: (s: PrinterStatus) => void) {
 }
 
 export function isBluetoothSupported() {
-  return typeof navigator !== "undefined" && !!getBluetooth();
+  if (typeof navigator === "undefined") return false;
+  return isNativeApp() || !!getBluetooth();
 }
 
 export function connectedPrinterName() {
-  return conn?.device.name ?? null;
+  return conn?.device.name ?? nativeConn?.name ?? null;
 }
 
 async function attach(device: BluetoothDevice): Promise<string> {
@@ -289,6 +390,7 @@ async function attach(device: BluetoothDevice): Promise<string> {
 
 /** Full scanner dialog — used by "Change printer". */
 export async function connectPrinter(): Promise<string> {
+  if (isNativeApp()) return nativeConnect();
   if (!isBluetoothSupported()) throw new Error("Web Bluetooth is not supported in this browser.");
   connecting = true;
   emit();
@@ -306,6 +408,7 @@ export async function connectPrinter(): Promise<string> {
 
 /** Silent reconnect to the previously paired printer. Returns name or null. */
 export async function autoReconnect(): Promise<string | null> {
+  if (isNativeApp()) return nativeConn ? nativeConn.name : nativeAutoReconnect();
   if (conn) return conn.device.name ?? "Thermal printer";
   const bt = getBluetooth();
   const saved = savedPrinter();
@@ -327,6 +430,7 @@ export async function autoReconnect(): Promise<string | null> {
 
 /** Reconnect if possible, otherwise open the scanner. */
 export async function ensurePrinter(): Promise<string> {
+  if (nativeConn) return nativeConn.name;
   if (conn) return conn.device.name ?? "Thermal printer";
   const auto = await autoReconnect();
   if (auto) return auto;
@@ -336,10 +440,24 @@ export async function ensurePrinter(): Promise<string> {
 export function disconnectPrinter() {
   conn?.device.gatt?.disconnect();
   conn = null;
+  if (nativeConn) {
+    const id = nativeConn.deviceId;
+    nativeConn = null;
+    void ble().then((c) => c.disconnect(id)).catch(() => {});
+  }
   emit();
 }
 
+/** Base64 of raw ESC/POS bytes (used for the RawBT intent scheme). */
+export function bytesToBase64(data: Uint8Array) {
+  let bin = "";
+  for (let i = 0; i < data.length; i += 0x8000)
+    bin += String.fromCharCode(...Array.from(data.subarray(i, i + 0x8000)));
+  return btoa(bin);
+}
+
 export async function printBytes(data: Uint8Array) {
+  if (nativeConn) return nativePrint(data);
   if (!conn) throw new Error("No printer connected.");
   const chunk = 180;
   for (let i = 0; i < data.length; i += chunk) {

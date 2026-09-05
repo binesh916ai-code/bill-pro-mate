@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
 
-import { EscPosBuilder, center, itemHeader, itemRow, printBytes, repeat, row, wrap } from "@/lib/escpos";
+import { EscPosBuilder, bytesToBase64, center, itemHeader, itemRow, printBytes, repeat, row, wrap } from "@/lib/escpos";
 import { billTotals, money, withDisplayDate, type BillData } from "@/components/pos/BillPreview";
 import { paperColumns, type PaperSize } from "@/lib/pos-store";
 
@@ -445,6 +445,15 @@ export function buildReceipt(rawBill: BillData, template = 1, paper: PaperSize =
 
 export async function printThermal(bill: BillData, template = 1, paper: PaperSize = 80) {
   await printBytes(buildReceipt(bill, template, paper));
+}
+
+/**
+ * Hand the ESC/POS receipt to the RawBT app via its intent scheme
+ * (used inside the Android APK where window.print() is unavailable).
+ */
+export function printViaRawBT(bill: BillData, template = 1, paper: PaperSize = 80) {
+  const b64 = bytesToBase64(buildReceipt(bill, template, paper));
+  window.location.href = `rawbt:base64,${b64}`;
 }
 
 async function snapshot(el: HTMLElement) {
