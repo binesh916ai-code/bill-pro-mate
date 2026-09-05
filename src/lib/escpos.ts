@@ -178,6 +178,104 @@ function getBluetooth(): BluetoothApi | undefined {
   return (navigator as unknown as { bluetooth?: BluetoothApi }).bluetooth;
 }
 
+/* ---------- native (Capacitor Android) transport ---------- */
+
+export function isNativeApp() {
+  return Capacitor.isNativePlatform();
+}
+
+type NativeConn = { deviceId: string; name: string; service: string; characteristic: string; withoutResponse: boolean };
+let nativeConn: NativeConn | null = null;
+let bleReady = false;
+
+async function ble() {
+  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  if (!bleReady) {
+    await BleClient.initialize({ androidNeverForLocation: true });
+    bleReady = true;
+  }
+  return BleClient;
+}
+
+async function nativeAttach(deviceId: string, name: string): Promise<string> {
+  const BleClient = await ble();
+  await BleClient.connect(deviceId, () => {
+    nativeConn = null;
+    emit();
+  });
+  const services = await BleClient.getServices(deviceId);
+  let found: NativeConn | null = null;
+  for (const s of services) {
+    const c = s.characteristics.find((ch) => ch.properties.write || ch.properties.writeWithoutResponse);
+    if (c) {
+      found = {
+        deviceId,
+        name,
+        service: s.uuid,
+        characteristic: c.uuid,
+        withoutResponse: !!c.properties.writeWithoutResponse,
+      };
+      break;
+    }
+  }
+  if (!found) {
+    await BleClient.disconnect(deviceId).catch(() => {});
+    throw new Error("No writable characteristic found on this printer.");
+  }
+  nativeConn = found;
+  try {
+    window.localStorage.setItem(PAIR_KEY, JSON.stringify({ id: deviceId, name }));
+  } catch {
+    /* ignore */
+  }
+  emit();
+  return name;
+}
+
+async function nativeConnect(): Promise<string> {
+  const BleClient = await ble();
+  connecting = true;
+  emit();
+  try {
+    const device = await BleClient.requestDevice({ optionalServices: SERVICES });
+    return await nativeAttach(device.deviceId, device.name || "Thermal printer");
+  } finally {
+    connecting = false;
+    emit();
+  }
+}
+
+async function nativeAutoReconnect(): Promise<string | null> {
+  const saved = savedPrinter();
+  if (!saved?.id) return null;
+  connecting = true;
+  emit();
+  try {
+    return await nativeAttach(saved.id, saved.name);
+  } catch {
+    return null;
+  } finally {
+    connecting = false;
+    emit();
+  }
+}
+
+async function nativePrint(data: Uint8Array) {
+  if (!nativeConn) throw new Error("No printer connected.");
+  const BleClient = await ble();
+  const chunk = 180;
+  for (let i = 0; i < data.length; i += chunk) {
+    const slice = data.slice(i, i + chunk);
+    const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength);
+    if (nativeConn.withoutResponse) {
+      await BleClient.writeWithoutResponse(nativeConn.deviceId, nativeConn.service, nativeConn.characteristic, view);
+    } else {
+      await BleClient.write(nativeConn.deviceId, nativeConn.service, nativeConn.characteristic, view);
+    }
+    await new Promise((r) => setTimeout(r, 25));
+  }
+}
+
 const SERVICES = [
   "000018f0-0000-1000-8000-00805f9b34fb",
   "0000ffe0-0000-1000-8000-00805f9b34fb",
