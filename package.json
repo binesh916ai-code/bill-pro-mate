@@ -12,6 +12,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.3.0",
     "@capacitor/android": "^8.5.1",
     "@capacitor/core": "^8.5.1",
     "@hookform/resolvers": "^5.2.2",
