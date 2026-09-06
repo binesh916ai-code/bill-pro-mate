@@ -190,57 +190,103 @@ type NativeConn = { deviceId: string; name: string; service: string; characteris
 let nativeConn: NativeConn | null = null;
 let bleReady = false;
 
+/** Turn plugin / OS errors into a message the cashier can act on. */
+function explainBleError(e: unknown): Error {
+  const msg = String((e as Error)?.message ?? e ?? "").toLowerCase();
+  if (msg.includes("permission") || msg.includes("denied"))
+    return new Error(
+      "Bluetooth permission was denied. Open Android Settings → Apps → CounterBook → Permissions and allow Nearby devices & Location, then try again.",
+    );
+  if (msg.includes("not enabled") || msg.includes("disabled") || msg.includes("bluetooth is off"))
+    return new Error("Bluetooth is turned off. Switch it on and try again.");
+  if (msg.includes("location"))
+    return new Error("Location services must be on for Bluetooth scanning on this Android version.");
+  if (msg.includes("cancel")) return new Error("Printer selection was cancelled.");
+  return new Error((e as Error)?.message || "Could not reach the Bluetooth printer.");
+}
+
+/**
+ * Initialise the native BLE plugin. On Android this explicitly requests the
+ * BLUETOOTH_SCAN / BLUETOOTH_CONNECT (API 31+) or ACCESS_FINE_LOCATION (≤ API 30)
+ * runtime permissions and rejects with a readable error if they are denied.
+ */
 async function ble() {
   const { BleClient } = await import("@capacitor-community/bluetooth-le");
   if (!bleReady) {
-    await BleClient.initialize({ androidNeverForLocation: true });
+    try {
+      await BleClient.initialize({ androidNeverForLocation: true });
+    } catch (e) {
+      throw explainBleError(e);
+    }
     bleReady = true;
   }
   return BleClient;
 }
 
-async function nativeAttach(deviceId: string, name: string): Promise<string> {
+/** Request runtime permissions + make sure the Bluetooth radio is on. */
+export async function ensureBlePermissions() {
   const BleClient = await ble();
-  await BleClient.connect(deviceId, () => {
-    nativeConn = null;
-    emit();
-  });
-  const services = await BleClient.getServices(deviceId);
-  let found: NativeConn | null = null;
-  for (const s of services) {
-    const c = s.characteristics.find((ch) => ch.properties.write || ch.properties.writeWithoutResponse);
-    if (c) {
-      found = {
-        deviceId,
-        name,
-        service: s.uuid,
-        characteristic: c.uuid,
-        withoutResponse: !!c.properties.writeWithoutResponse,
-      };
-      break;
-    }
-  }
-  if (!found) {
-    await BleClient.disconnect(deviceId).catch(() => {});
-    throw new Error("No writable characteristic found on this printer.");
-  }
-  nativeConn = found;
   try {
-    window.localStorage.setItem(PAIR_KEY, JSON.stringify({ id: deviceId, name }));
-  } catch {
-    /* ignore */
+    const on = await BleClient.isEnabled();
+    if (!on) {
+      await BleClient.requestEnable().catch(() => {});
+      if (!(await BleClient.isEnabled())) throw new Error("Bluetooth is turned off. Switch it on and try again.");
+    }
+    // Android ≤ 11 also needs location services for BLE scans.
+    const loc = await BleClient.isLocationEnabled().catch(() => true);
+    if (!loc) await BleClient.openLocationSettings().catch(() => {});
+  } catch (e) {
+    throw explainBleError(e);
   }
+}
+
+export type ScannedPrinter = { id: string; name: string; rssi?: number };
+
+/** Start a native LE scan; calls `onDevice` for every (de-duplicated) device found. */
+export async function startPrinterScan(onDevice: (d: ScannedPrinter) => void) {
+  await ensureBlePermissions();
+  const BleClient = await ble();
+  try {
+    await BleClient.requestLEScan({ allowDuplicates: false }, (r) => {
+      const name = r.device.name || r.localName || "";
+      onDevice({ id: r.device.deviceId, name: name || `Unknown (${r.device.deviceId.slice(-5)})`, rssi: r.rssi });
+    });
+  } catch (e) {
+    throw explainBleError(e);
+  }
+}
+
+export async function stopPrinterScan() {
+  if (!bleReady) return;
+  const BleClient = await ble();
+  await BleClient.stopLEScan().catch(() => {});
+}
+
+/** Connect to a device chosen from the in-app picker (native only). */
+export async function connectScannedPrinter(d: ScannedPrinter): Promise<string> {
+  await stopPrinterScan();
+  connecting = true;
   emit();
-  return name;
+  try {
+    return await nativeAttach(d.id, d.name);
+  } catch (e) {
+    throw explainBleError(e);
+  } finally {
+    connecting = false;
+    emit();
+  }
 }
 
 async function nativeConnect(): Promise<string> {
+  await ensureBlePermissions();
   const BleClient = await ble();
   connecting = true;
   emit();
   try {
     const device = await BleClient.requestDevice({ optionalServices: SERVICES });
     return await nativeAttach(device.deviceId, device.name || "Thermal printer");
+  } catch (e) {
+    throw explainBleError(e);
   } finally {
     connecting = false;
     emit();
