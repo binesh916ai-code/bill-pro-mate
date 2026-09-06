@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BillPreview, type BillData } from "./BillPreview";
 import { printThermal, saveBillImage, saveBillPdf } from "@/lib/bill-output";
-import { ensurePrinter, isBluetoothSupported, isNativeApp } from "@/lib/escpos";
-import { printElementNatively } from "@/lib/native-print";
+import { autoReconnect, isBluetoothSupported, printerStatus } from "@/lib/escpos";
+import { printElementInFrame } from "@/lib/frame-print";
+import { PrinterPickerDialog } from "./PrinterPickerDialog";
 
 type Props = {
   open: boolean;
@@ -33,6 +34,7 @@ export function BillDialog({
   const ref = useRef<HTMLDivElement>(null);
   const paper = (Number(bill.firm?.paperSize) === 58 ? 58 : 80) as 58 | 80;
   const [busy, setBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const fileName = `${bill.invoiceNo || "bill"}-${mode === "a4" ? "invoice" : "receipt"}`;
 
@@ -48,14 +50,32 @@ export function BillDialog({
     }
   }
 
-  async function thermalPrint() {
-    if (!isBluetoothSupported())
-      return toast.error("Web Bluetooth isn't available here. Use Chrome on Android/desktop.");
+  async function sendToPrinter() {
     await withBusy(async () => {
-      await ensurePrinter();
       onBeforePrint?.();
       await printThermal(bill, template, paper);
     }, "Sent to thermal printer");
+  }
+
+  async function thermalPrint() {
+    if (!isBluetoothSupported())
+      return toast.error("Bluetooth isn't available here. Use the Android app or Chrome on Android/desktop.");
+    setBusy(true);
+    let connected = printerStatus().connected;
+    if (!connected) {
+      try {
+        connected = !!(await autoReconnect());
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    }
+    setBusy(false);
+    if (!connected) {
+      // Not paired yet — let the user scan and pick a printer first.
+      setPickerOpen(true);
+      return;
+    }
+    await sendToPrinter();
   }
 
   return (
@@ -93,16 +113,9 @@ export function BillDialog({
             disabled={busy}
             onClick={() => {
               onBeforePrint?.();
-              if (isNativeApp()) {
-                // window.print() is a no-op inside the Android WebView — open the
-                // Android system print dialog with the fully styled receipt instead.
-                withBusy(
-                  () => printElementNatively(ref.current!, fileName, mode, paper),
-                  "Opening system print dialog",
-                );
-                return;
-              }
-              window.print();
+              // Print just the receipt via window.print() inside a hidden iframe —
+              // opens the browser print dialog / Android system print spooler.
+              withBusy(() => printElementInFrame(ref.current!, mode, paper), "Opening print dialog");
             }}
           >
             <Printer /> Print
@@ -136,6 +149,7 @@ export function BillDialog({
           </Button>
         </div>
       </DialogContent>
+      <PrinterPickerDialog open={pickerOpen} onOpenChange={setPickerOpen} onConnected={() => void sendToPrinter()} />
     </Dialog>
   );
 }
