@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BillPreview, type BillData } from "./BillPreview";
-import { printThermal, printViaRawBT, saveBillImage, saveBillPdf } from "@/lib/bill-output";
+import { printThermal, saveBillImage, saveBillPdf } from "@/lib/bill-output";
 import { ensurePrinter, isBluetoothSupported, isNativeApp } from "@/lib/escpos";
+import { printElementNatively } from "@/lib/native-print";
 
 type Props = {
   open: boolean;
@@ -93,14 +94,12 @@ export function BillDialog({
             onClick={() => {
               onBeforePrint?.();
               if (isNativeApp()) {
-                // window.print() is a no-op inside the Android WebView — hand the
-                // ESC/POS receipt to RawBT via its intent scheme instead.
-                if (mode === "thermal") {
-                  printViaRawBT(bill, template, paper);
-                  toast.success("Sent to RawBT");
-                } else {
-                  withBusy(() => saveBillPdf(ref.current!, mode, fileName, paper), "PDF saved — open it to print");
-                }
+                // window.print() is a no-op inside the Android WebView — open the
+                // Android system print dialog with the fully styled receipt instead.
+                withBusy(
+                  () => printElementNatively(ref.current!, fileName, mode, paper),
+                  "Opening system print dialog",
+                );
                 return;
               }
               window.print();

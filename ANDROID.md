@@ -33,5 +33,5 @@ The web app is also installable from Chrome/Safari ("Add to Home Screen") via
 `public/manifest.webmanifest` — it opens full-screen with a teal splash screen.
 
 ## Printing inside the APK
-- **Print** (left button) sends the ESC/POS receipt to the [RawBT](https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter) app via the `rawbt:` scheme — install RawBT and pair your printer there once. For A4 mode it saves a PDF you can print from any app.
+- **Print** (left button) opens the Android system print dialog (PrintManager / Print Spooler) with the fully styled receipt — exactly like Chrome. Pick your printer or a print service (e.g. the RawBT print service, or Save as PDF) from that dialog. 80mm receipts use an 80mm roll page; A4 invoices use A4.
 - **Thermal Print** (right button) uses native Bluetooth LE (`@capacitor-community/bluetooth-le`). Run `npx cap sync android` after pulling so the plugin and permissions are picked up.
