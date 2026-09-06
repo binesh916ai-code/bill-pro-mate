@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BillPreview, type BillData } from "./BillPreview";
-import { printThermal, printViaRawBT, saveBillImage, saveBillPdf } from "@/lib/bill-output";
+import { printThermal, saveBillImage, saveBillPdf } from "@/lib/bill-output";
 import { ensurePrinter, isBluetoothSupported, isNativeApp } from "@/lib/escpos";
+import { printElementNatively } from "@/lib/native-print";
 
 type Props = {
   open: boolean;
