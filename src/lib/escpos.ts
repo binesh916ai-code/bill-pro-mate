@@ -262,6 +262,41 @@ export async function stopPrinterScan() {
   await BleClient.stopLEScan().catch(() => {});
 }
 
+async function nativeAttach(deviceId: string, name: string): Promise<string> {
+  const BleClient = await ble();
+  await BleClient.connect(deviceId, () => {
+    nativeConn = null;
+    emit();
+  });
+  const services = await BleClient.getServices(deviceId);
+  let found: NativeConn | null = null;
+  for (const s of services) {
+    const c = s.characteristics.find((ch) => ch.properties.write || ch.properties.writeWithoutResponse);
+    if (c) {
+      found = {
+        deviceId,
+        name,
+        service: s.uuid,
+        characteristic: c.uuid,
+        withoutResponse: !!c.properties.writeWithoutResponse,
+      };
+      break;
+    }
+  }
+  if (!found) {
+    await BleClient.disconnect(deviceId).catch(() => {});
+    throw new Error("Connected, but this device isn't a printer we can send receipts to.");
+  }
+  nativeConn = found;
+  try {
+    window.localStorage.setItem(PAIR_KEY, JSON.stringify({ id: deviceId, name }));
+  } catch {
+    /* ignore */
+  }
+  emit();
+  return name;
+}
+
 /** Connect to a device chosen from the in-app picker (native only). */
 export async function connectScannedPrinter(d: ScannedPrinter): Promise<string> {
   await stopPrinterScan();
