@@ -44,6 +44,16 @@ ${collectStyles()}
 <div class="print-root">${el.outerHTML}</div>
 </body></html>`;
 
+  // Inside the Android APK, WebView ignores window.print() entirely — hand the
+  // receipt HTML to the native print bridge (MainActivity) which opens the
+  // system print dialog. On web/Chrome this global is absent and we fall back
+  // to the invisible-iframe print below.
+  const nativePrint = (window as unknown as { AndroidPrint?: { print(html: string): void } }).AndroidPrint;
+  if (nativePrint) {
+    nativePrint.print(html);
+    return;
+  }
+
   const frame = document.createElement("iframe");
   frame.setAttribute("aria-hidden", "true");
   frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
