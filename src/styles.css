@@ -181,6 +181,8 @@
     width: 100%;
     background: #fff;
     color: #000;
+    /* Safe leading space so the printer does not clip the shop name. */
+    padding-top: 5mm;
   }
   @page {
     margin: 12mm;
@@ -191,10 +193,13 @@
   .print-area.thermal {
     width: 72mm;
     font-size: 11px;
+    /* Extra top padding for 80mm thermal rolls where the physical top margin is tiny. */
+    padding-top: 8mm;
   }
   .print-area.thermal.narrow {
     width: 50mm;
     font-size: 10px;
+    padding-top: 8mm;
   }
 }
 
