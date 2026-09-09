@@ -36,7 +36,8 @@ ${collectStyles()}
 <style>
   @page { size: ${roll ? `${Number(paper) === 58 ? 58 : 80}mm auto` : "A4"}; margin: ${roll ? "0" : "10mm"}; }
   html, body { margin: 0; padding: 0; background: #fff !important; color: #000 !important; }
-  body { width: ${widthMm}mm; padding: ${roll ? "4mm" : "0"}; }
+  /* Extra leading space at the top of the page so the shop name is not cut off. */
+  body { width: ${widthMm}mm; padding: ${roll ? "4mm" : "0"}; padding-top: ${roll ? "8mm" : "5mm"}; }
   .print-root { width: 100%; }
   .print-root * { visibility: visible !important; }
 </style>
